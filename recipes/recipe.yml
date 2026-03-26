@@ -23,6 +23,7 @@ modules:
     install:
       packages:
         - virt-manager
+        - virt-install
         - edk2-ovmf
         - qemu
         - git-delta
