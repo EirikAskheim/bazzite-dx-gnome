@@ -27,6 +27,10 @@ modules:
         - qemu
         - git-delta
         - patch
+        - incus
+        - incus-client
+        - incus-selinux
+        - incus-tools
     remove:
       packages:
         # example: removing firefox (in favor of the flatpak)
