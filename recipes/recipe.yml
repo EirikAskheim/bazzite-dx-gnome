@@ -17,9 +17,6 @@ modules:
   - type: justfiles
     validate: true
   - type: dnf
-    repos:
-      copr:
-        - atim/starship
     install:
       packages:
         - virt-manager
