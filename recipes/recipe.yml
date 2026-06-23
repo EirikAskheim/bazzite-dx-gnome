@@ -19,6 +19,7 @@ modules:
   - type: dnf
     install:
       packages:
+        - firefox
         - virt-manager
         - virt-install
         - edk2-ovmf
