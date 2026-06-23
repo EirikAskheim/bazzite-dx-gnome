@@ -29,12 +29,6 @@ modules:
         - incus-client
         - incus-selinux
         - incus-tools
-    remove:
-      packages:
-        # example: removing firefox (in favor of the flatpak)
-        # "firefox" is the main package, "firefox-langpacks" is a dependency
-        - firefox
-        - firefox-langpacks
   - type: signing
   - type: dnf
     repos:
