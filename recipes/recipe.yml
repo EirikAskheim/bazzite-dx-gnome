@@ -17,6 +17,10 @@ modules:
   - type: justfiles
     validate: true
   - type: dnf
+    repos:
+      files:
+        add:
+          - fedora-cisco-openh264
     install:
       packages:
         - firefox
