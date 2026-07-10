@@ -17,13 +17,8 @@ modules:
   - type: justfiles
     validate: true
   - type: dnf
-    repos:
-      files:
-        add:
-          - fedora-cisco-openh264.repo
     install:
       packages:
-        - firefox
         - virt-manager
         - virt-install
         - edk2-ovmf
@@ -49,3 +44,10 @@ modules:
     install:
       packages:
         - wezterm
+  - type: dnf
+    repos:
+      copr:
+        - deltacopy/waterfox
+    install:
+      packages:
+        - waterfox
