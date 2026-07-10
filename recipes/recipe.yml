@@ -20,7 +20,7 @@ modules:
     repos:
       files:
         add:
-          - fedora-cisco-openh264
+          - fedora-cisco-openh264.repo
     install:
       packages:
         - firefox
