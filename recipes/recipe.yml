@@ -54,7 +54,7 @@ modules:
         # Extract the Makeself archive without running the embedded setup script
         bash /tmp/mudfish.sh --noexec --noprogress --target "${EXTRACT_DIR}"
         # Create directories and install files
-        mkdir -p "${PKGDIR}"/{bin,etc,sbin,share,var}
+        mkdir -p "${PKGDIR}"/{bin,etc,sbin,share}
         install -m 755 "${EXTRACT_DIR}/bin"/*   "${PKGDIR}/bin/"
         install -m 644 "${EXTRACT_DIR}/etc"/*   "${PKGDIR}/etc/"
         install -m 755 "${EXTRACT_DIR}/sbin"/*  "${PKGDIR}/sbin/"
@@ -67,6 +67,9 @@ modules:
           ln -sf "${PKGDIR}/bin/${bin}" /usr/bin/"${bin}"
         done
         ln -sf "${PKGDIR}/sbin/mudovpn" /usr/bin/mudovpn
+        # Symlink var to writable location under /var (Fedora Atomic /opt is read-only at runtime)
+        mkdir -p /var/lib/mudfish
+        ln -sf /var/lib/mudfish "${PKGDIR}/var"
         # Clean up
         rm -rf "${EXTRACT_DIR}" /tmp/mudfish.sh
         echo "Mudfish Cloud VPN v${VERSION} installed."
