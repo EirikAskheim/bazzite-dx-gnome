@@ -37,6 +37,39 @@ modules:
     install:
       packages:
         - zed
+  # Mudfish Cloud VPN
+  - type: dnf
+    install:
+      packages:
+        - libayatana-appindicator3
+  - type: script
+    snippets:
+      - |
+        VERSION=6.5.3
+        PKGDIR="/opt/mudfish/${VERSION}"
+        echo "Installing Mudfish Cloud VPN v${VERSION}..."
+        EXTRACT_DIR="/tmp/mudfish-extract"
+        curl -fsSLo /tmp/mudfish.sh \
+          "https://mudfish.net/releases/mudfish-${VERSION}-linux-x86_64.sh"
+        # Extract the Makeself archive without running the embedded setup script
+        bash /tmp/mudfish.sh --noexec --noprogress --target "${EXTRACT_DIR}"
+        # Create directories and install files
+        mkdir -p "${PKGDIR}"/{bin,etc,sbin,share,var}
+        install -m 755 "${EXTRACT_DIR}/bin"/*   "${PKGDIR}/bin/"
+        install -m 644 "${EXTRACT_DIR}/etc"/*   "${PKGDIR}/etc/"
+        install -m 755 "${EXTRACT_DIR}/sbin"/*  "${PKGDIR}/sbin/"
+        install -m 644 "${EXTRACT_DIR}/share/mudrun_logo.png" "${PKGDIR}/share/"
+        # Desktop entry and polkit policy (usr is writable during image build)
+        install -m 644 "${EXTRACT_DIR}/share/mudrun.desktop" /usr/share/applications/
+        install -m 644 "${EXTRACT_DIR}/share/net.mudfish.mudrun.policy" /usr/share/polkit-1/actions/
+        # Symlink main binaries into PATH
+        for bin in mudfish mudrun mudrun-headless mudadm mudflow mudmtr mudnetmon mudstat muddiag; do
+          ln -sf "${PKGDIR}/bin/${bin}" /usr/bin/"${bin}"
+        done
+        ln -sf "${PKGDIR}/sbin/mudovpn" /usr/bin/mudovpn
+        # Clean up
+        rm -rf "${EXTRACT_DIR}" /tmp/mudfish.sh
+        echo "Mudfish Cloud VPN v${VERSION} installed."
   - type: dnf
     repos:
       copr:
