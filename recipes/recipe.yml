@@ -29,6 +29,7 @@ modules:
         - incus-client
         - incus-selinux
         - incus-tools
+        - python3-devel
   - type: signing
   - type: dnf
     repos:
