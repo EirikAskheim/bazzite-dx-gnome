@@ -1,0 +1,15 @@
+[Unit]
+Description=Mudfish Cloud VPN headless daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/opt/mudfish/6.5.3/bin/mudrun-headless
+Restart=on-failure
+RestartSec=5
+# /opt is read-only at runtime; state/logs live under the /var symlink
+WorkingDirectory=/var/lib/mudfish
+
+[Install]
+WantedBy=multi-user.target
