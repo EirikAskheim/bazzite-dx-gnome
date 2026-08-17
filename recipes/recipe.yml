@@ -31,7 +31,6 @@ modules:
         - incus-tools
         - python3-devel
         - firejail
-        - opencode
   - type: signing
   - type: dnf
     repos:
@@ -39,6 +38,7 @@ modules:
         - terra.repo
     install:
       packages:
+        - opencode
         - zed
   # Mudfish Cloud VPN
   - type: dnf
