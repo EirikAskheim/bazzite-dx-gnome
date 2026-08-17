@@ -31,6 +31,7 @@ modules:
         - incus-tools
         - python3-devel
         - firejail
+        - opencode
   - type: signing
   - type: dnf
     repos:
