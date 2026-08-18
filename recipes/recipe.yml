@@ -31,14 +31,6 @@ modules:
         - incus-tools
         - python3-devel
         - firejail
-        - nodejs
-        - npm
-  # Pi Coding Agent
-  - type: script
-    snippets:
-      - |
-        npm install --global --prefix /usr/local --ignore-scripts \
-          @earendil-works/pi-coding-agent
   - type: signing
   - type: dnf
     repos:
