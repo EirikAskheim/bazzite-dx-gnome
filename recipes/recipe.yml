@@ -32,6 +32,8 @@ modules:
         - python3-devel
         - firejail
         - zstd
+        - mingw32-gcc-c++
+        - mingw64-binutils
   - type: signing
   - type: dnf
     repos:
