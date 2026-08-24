@@ -75,9 +75,14 @@ modules:
           tar -xzf "${TMPDIR}/ollama.tgz" -C "${OLLAMA_DIR}"
         fi
 
+        # Keep Ollama's home on the writable /var filesystem. The base image may
+        # already provide the user with a home under /usr, so update it in both
+        # cases rather than only setting it when creating the user.
         if ! id ollama >/dev/null 2>&1; then
           useradd --system --user-group --shell /sbin/nologin --no-create-home \
             --home-dir /var/lib/ollama ollama
+        else
+          usermod --home-dir /var/lib/ollama ollama
         fi
         for group in render video; do
           if getent group "${group}" >/dev/null 2>&1; then

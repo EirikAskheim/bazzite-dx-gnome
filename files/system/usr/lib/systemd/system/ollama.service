@@ -8,6 +8,7 @@ ExecStart=/usr/local/bin/ollama serve
 User=ollama
 Group=ollama
 StateDirectory=ollama
+Environment=HOME=/var/lib/ollama
 Environment=OLLAMA_MODELS=/var/lib/ollama/models
 Environment="OLLAMA_VULKAN=1"
 Environment="OLLAMA_IGPU_ENABLE=1"
