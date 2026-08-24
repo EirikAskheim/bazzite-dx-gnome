@@ -1,0 +1,4 @@
+# Allow local LLM runtimes to access AMD GPU compute and render nodes.
+SUBSYSTEM=="kfd", GROUP="render", MODE="0666"
+SUBSYSTEM=="drm", KERNEL=="card[0-9]*", GROUP="render", MODE="0666"
+SUBSYSTEM=="drm", KERNEL=="renderD[0-9]*", GROUP="render", MODE="0666"

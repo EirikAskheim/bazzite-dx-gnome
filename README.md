@@ -30,6 +30,22 @@ To rebase an existing atomic Fedora installation to the latest build:
 
 The `latest` tag will automatically point to the latest build. That build will still always use the Fedora version specified in `recipe.yml`, so you won't get accidentally updated to the next major version.
 
+## Local LLM AMD GPU tuning
+
+The image includes AMD GPU settings intended to improve the amount of host memory available to local LLM workloads. The settings are installed as part of the image in:
+
+- `/etc/modprobe.d/amdgpu_llm_optimized.conf`
+- `/etc/udev/rules.d/99-amd-kfd.rules`
+
+After rebasing to an image containing these files, run the following as the user who will run the LLM workloads:
+
+```bash
+ujust llm-gpu-setup
+systemctl reboot
+```
+
+The setup recipe uses `dracut` (the Fedora/Bazzite equivalent of Ubuntu's `update-initramfs`), reloads the udev rules, and adds the user to the `render` and `video` groups. The group changes require logging in again. The udev rules grant render and KFD device access to all local users, so only use this image on systems where that is acceptable.
+
 ## ISO
 
 If build on Fedora Atomic, you can generate an offline ISO with the instructions available [here](https://blue-build.org/how-to/generate-iso/#_top). These ISOs cannot unfortunately be distributed on GitHub for free due to large sizes, so for public projects something else has to be used for hosting.
