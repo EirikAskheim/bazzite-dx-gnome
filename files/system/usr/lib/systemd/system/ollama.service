@@ -4,7 +4,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/usr/local/bin/ollama serve
+ExecStart=/usr/bin/ollama serve
 User=ollama
 Group=ollama
 StateDirectory=ollama
