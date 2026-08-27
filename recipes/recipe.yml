@@ -48,13 +48,8 @@ modules:
     snippets:
       - |
         set -eu
-        ARCH="$(uname -m)"
-        case "${ARCH}" in
-          x86_64) ARCH=amd64 ;;
-          aarch64|arm64) ARCH=arm64 ;;
-          *) echo "Unsupported architecture: ${ARCH}" >&2; exit 1 ;;
-        esac
-
+        # The published image targets amd64 regardless of the build host.
+        ARCH=amd64
         OLLAMA_DIR=/usr
         TMPDIR="$(mktemp -d)"
         trap 'rm -rf "${TMPDIR}"' EXIT
@@ -76,6 +71,16 @@ modules:
           install -o 0 -g 0 -m 755 -d "${OLLAMA_DIR}/bin" "${OLLAMA_DIR}/lib/ollama"
           tar -xzf "${TMPDIR}/ollama.tgz" -C "${OLLAMA_DIR}"
         fi
+
+        # Ollama's AMD GPU support is shipped as a separate ROCm package.
+        # The image is built for amd64, so install the documented AMD GPU
+        # package regardless of the architecture of the build host.
+        echo "Installing Ollama ROCm support..."
+        curl --fail --show-error --location \
+          "https://ollama.com/download/ollama-linux-amd64-rocm.tar.zst" \
+          -o "${TMPDIR}/ollama-rocm.tar.zst"
+        tar --use-compress-program=unzstd -xf \
+          "${TMPDIR}/ollama-rocm.tar.zst" -C "${OLLAMA_DIR}"
 
         # Keep Ollama's home on the writable /var filesystem. The base image may
         # already provide the user with a home under /usr, so update it in both
