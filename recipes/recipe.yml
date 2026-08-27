@@ -92,6 +92,7 @@ modules:
           fi
         done
         install -o ollama -g ollama -m 755 -d /var/lib/ollama
+        /usr/local/bin/ollama --version
         echo "Ollama installed."
   # Mudfish Cloud VPN
   - type: dnf
