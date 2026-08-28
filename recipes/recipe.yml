@@ -174,10 +174,3 @@ modules:
     install:
       packages:
         - waterfox
-  - type: dnf
-    repos:
-      files:
-        - cloudflare-warp.repo
-    install:
-      packages:
-        - cloudflare-warp
