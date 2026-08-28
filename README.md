@@ -46,6 +46,28 @@ systemctl reboot
 
 The setup recipe uses `dracut` (the Fedora/Bazzite equivalent of Ubuntu's `update-initramfs`), reloads the udev rules, and adds the user to the `render` and `video` groups. The group changes require logging in again. The udev rules grant render and KFD device access to all local users, so only use this image on systems where that is acceptable.
 
+## OpenViking server
+
+OpenViking is installed in an isolated virtual environment at `/usr/lib/openviking/venv`.
+The `ov` and `openviking-server` commands are linked into `/usr/bin`. The system
+service runs as the unprivileged `openviking` user and stores its configuration and data
+in its writable `/var/lib/openviking` home directory.
+
+After rebasing, run the interactive setup and start the service:
+
+```bash
+ujust openviking-server-init
+```
+
+Validate the configuration and provider connectivity with:
+
+```bash
+ujust openviking-server-doctor
+```
+
+The service can then be managed with `systemctl status|restart openviking-server`.
+It is intentionally not enabled by default until the initialization recipe completes.
+
 ## ISO
 
 If build on Fedora Atomic, you can generate an offline ISO with the instructions available [here](https://blue-build.org/how-to/generate-iso/#_top). These ISOs cannot unfortunately be distributed on GitHub for free due to large sizes, so for public projects something else has to be used for hosting.

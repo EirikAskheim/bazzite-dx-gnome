@@ -1,0 +1,24 @@
+[Unit]
+Description=OpenViking server
+Documentation=https://github.com/volcengine/OpenViking
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=openviking
+Group=openviking
+Environment=HOME=/var/lib/openviking
+WorkingDirectory=/var/lib/openviking
+StateDirectory=openviking
+StateDirectoryMode=0750
+ExecStart=/usr/bin/openviking-server
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

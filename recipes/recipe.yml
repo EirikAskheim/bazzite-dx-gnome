@@ -34,6 +34,32 @@ modules:
         - zstd
         - mingw32-gcc-c++
         - mingw64-binutils
+        - python3-pip
+  # OpenViking server and CLI
+  - type: script
+    snippets:
+      - |
+        set -euo pipefail
+        VENV=/usr/lib/openviking/venv
+
+        echo "Installing OpenViking in ${VENV}..."
+        python3 -m venv "${VENV}"
+        "${VENV}/bin/python" -m pip install --no-cache-dir --upgrade pip openviking
+
+        # Install stable command paths on the immutable /usr filesystem.
+        ln -sfn "${VENV}/bin/ov" /usr/bin/ov
+        ln -sfn "${VENV}/bin/openviking-server" /usr/bin/openviking-server
+
+        # Keep configuration and runtime data on writable /var.
+        if ! id openviking >/dev/null 2>&1; then
+          useradd --system --user-group --shell /sbin/nologin --no-create-home \
+            --home-dir /var/lib/openviking --comment "OpenViking service account" \
+            openviking
+        else
+          usermod --home-dir /var/lib/openviking --shell /sbin/nologin openviking
+        fi
+        install -o openviking -g openviking -m 750 -d /var/lib/openviking
+        echo "OpenViking installed. Run 'ujust openviking-server-init' after boot."
   - type: signing
   - type: dnf
     repos:
