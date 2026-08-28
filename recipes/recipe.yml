@@ -30,6 +30,16 @@ modules:
         - incus-selinux
         - incus-tools
         - python3-devel
+        - libffi-devel
+        - openssl-devel
+        - gcc-c++
+        - rust
+        - cargo
+        - make
+        - pkg-config
+        - chromium
+        - ffmpeg
+        - ripgrep
         - firejail
         - zstd
         - mingw32-gcc-c++
@@ -43,6 +53,20 @@ modules:
       packages:
         - opencode
         - zed
+  # Hermes Agent (installed using the upstream installer from
+  # https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh)
+  # Keep its mutable uv/Node state under /var, which remains writable at runtime.
+  - type: script
+    snippets:
+      - |
+        set -euo pipefail
+        export HERMES_HOME=/var/lib/hermes
+        curl --fail --silent --show-error --location \
+          https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh \
+          | bash -s -- --skip-setup
+        # The build runs as root, but these are runtime assets shared by users.
+        chmod -R a+rX /var/lib/hermes
+        chmod 600 /var/lib/hermes/.env
   # Ollama (installed using the Linux installer from https://ollama.com/install.sh)
   - type: script
     snippets:
