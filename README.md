@@ -50,8 +50,10 @@ The setup recipe uses `dracut` (the Fedora/Bazzite equivalent of Ubuntu's `updat
 
 OpenViking is installed in an isolated virtual environment at `/usr/lib/openviking/venv`.
 The `ov` and `openviking-server` commands are linked into `/usr/bin`. The system
-service runs as the unprivileged `openviking` user and stores its configuration and data
-in its writable `/var/lib/openviking` home directory.
+service runs as the unprivileged `openviking` system user and stores its configuration
+and data in its writable `/var/lib/openviking` home directory. The account and directory
+are created at boot by `systemd-sysusers` and `systemd-tmpfiles`, including after image
+updates.
 
 After rebasing, run the interactive setup and start the service:
 
