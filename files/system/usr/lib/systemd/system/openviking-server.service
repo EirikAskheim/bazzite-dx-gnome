@@ -9,15 +9,25 @@ Type=simple
 User=openviking
 Group=openviking
 Environment=HOME=/var/lib/openviking
+Environment=VIRTUAL_ENV=/usr/lib/openviking/venv
+Environment=PYTHONPATH=/usr/lib/openviking/venv/lib/python3.14/site-packages
+Environment=PYTHONNOUSERSITE=1
 WorkingDirectory=/var/lib/openviking
 StateDirectory=openviking
 StateDirectoryMode=0750
-# The venv entry point is labeled lib_t, so it otherwise inherits init_t and
-# SELinux blocks provider connections such as Ollama on TCP port 11434.
-# Run this third-party service in Fedora's standard unconfined service domain;
-# the systemd sandboxing below still applies.
+# The venv entry point is a shebang script under /usr/lib, so it is labeled
+# lib_t. This label cannot be fixed by relabeling: the image is immutable
+# (read-only composefs), and the unconfined_service_t domain lacks the
+# entrypoint permission for lib_t either (audit: "denied { entrypoint }").
+# Instead, exec the system interpreter /usr/bin/python3.14 (labeled bin_t)
+# and put the venv site-packages on PYTHONPATH, which resolves the script's
+# imports. Keep the interpreter in sync with venv/bin/python* and drop the
+# Python version from PYTHONPATH when it changes. Running in Fedora's
+# standard unconfined service domain also allows outbound connections to
+# local providers such as Ollama on TCP port 11434; the systemd sandboxing
+# below still applies.
 SELinuxContext=system_u:system_r:unconfined_service_t:s0
-ExecStart=/usr/bin/openviking-server
+ExecStart=/usr/bin/python3.14 /usr/lib/openviking/venv/bin/openviking-server
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true
