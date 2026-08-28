@@ -30,6 +30,19 @@ modules:
         - incus-selinux
         - incus-tools
         - python3-devel
+        - libffi-devel
+        - openssl-devel
+        - gcc-c++
+        - rust
+        - cargo
+        - make
+        - pkg-config
+        - chromium
+        - ffmpeg
+        - ripgrep
+        - nodejs22
+        - nodejs22-npm
+        - uv
         - firejail
         - zstd
         - mingw32-gcc-c++
@@ -64,6 +77,46 @@ modules:
       packages:
         - opencode
         - zed
+  # Hermes Agent. Install the gateway directly rather than invoking the
+  # upstream interactive installer, which is not reliable during image builds.
+  - type: script
+    snippets:
+      - |
+        set -euo pipefail
+        INSTALL_DIR=/usr/lib/hermes-agent
+        VENV="${INSTALL_DIR}/venv"
+        export UV_CACHE_DIR=/tmp/hermes-uv-cache
+        export UV_PYTHON_INSTALL_DIR="${INSTALL_DIR}/python"
+        export UV_PROJECT_ENVIRONMENT="${VENV}"
+        trap 'rm -rf "${UV_CACHE_DIR}"' EXIT
+
+        echo "Installing Hermes Agent in ${INSTALL_DIR}..."
+        rm -rf "${INSTALL_DIR}"
+        git clone --depth 1 --branch main \
+          https://github.com/NousResearch/hermes-agent.git "${INSTALL_DIR}"
+
+        cd "${INSTALL_DIR}"
+        # Hermes supports Python 3.11-3.13 while current Fedora ships 3.14.
+        # Keep uv's compatible interpreter inside the immutable installation.
+        uv python install 3.11
+        uv venv "${VENV}" --python 3.11
+        # Use the upstream lock file and include the dependencies required by
+        # the gateway's Telegram, Discord, Slack, and webhook integrations.
+        uv sync --locked --extra all --extra messaging --no-dev
+
+        # Preserve the upstream installation metadata. The service account
+        # cannot modify /usr; updates are delivered by rebuilding the image.
+        printf 'git\n' > "${INSTALL_DIR}/.install_method"
+
+        cat > /usr/bin/hermes <<'EOF'
+        #!/usr/bin/env bash
+        unset PYTHONHOME PYTHONPATH
+        exec /usr/lib/hermes-agent/venv/bin/python \
+          /usr/lib/hermes-agent/hermes "$@"
+        EOF
+        chmod 0755 /usr/bin/hermes
+
+        echo "Hermes Agent installed."
   # Ollama (installed using the Linux installer from https://ollama.com/install.sh)
   - type: script
     snippets:

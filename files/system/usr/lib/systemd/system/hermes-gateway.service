@@ -1,0 +1,34 @@
+[Unit]
+Description=Hermes Agent Gateway - Messaging Platform Integration
+Documentation=https://github.com/NousResearch/hermes-agent
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=hermes
+Group=hermes
+Environment=HOME=/var/lib/hermes
+Environment=USER=hermes
+Environment=LOGNAME=hermes
+Environment=HERMES_HOME=/var/lib/hermes
+Environment=VIRTUAL_ENV=/usr/lib/hermes-agent/venv
+Environment=PATH=/var/lib/hermes/node/bin:/usr/lib/hermes-agent/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+WorkingDirectory=/var/lib/hermes
+StateDirectory=hermes
+StateDirectoryMode=0750
+# Hermes integrates with local and remote providers and messaging services.
+# Run it in Fedora's standard unconfined service domain.
+SELinuxContext=system_u:system_r:unconfined_service_t:s0
+ExecStart=/usr/bin/hermes gateway run
+Restart=always
+RestartSec=5
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=60
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
