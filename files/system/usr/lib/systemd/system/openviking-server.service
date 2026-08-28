@@ -12,6 +12,11 @@ Environment=HOME=/var/lib/openviking
 WorkingDirectory=/var/lib/openviking
 StateDirectory=openviking
 StateDirectoryMode=0750
+# The venv entry point is labeled lib_t, so it otherwise inherits init_t and
+# SELinux blocks provider connections such as Ollama on TCP port 11434.
+# Run this third-party service in Fedora's standard unconfined service domain;
+# the systemd sandboxing below still applies.
+SELinuxContext=system_u:system_r:unconfined_service_t:s0
 ExecStart=/usr/bin/openviking-server
 Restart=on-failure
 RestartSec=5
