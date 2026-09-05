@@ -5,7 +5,10 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/opt/mudfish/6.5.3/bin/mudrun-headless
+# mudfish-run.sh keeps "Auto Connect" enabled and signs in at boot when
+# /etc/mudfish/credentials exists (see `ujust mudfish-setup`), so Mudfish
+# connects without touching the web UI.
+ExecStart=/usr/libexec/mudfish-run.sh
 Restart=on-failure
 RestartSec=5
 # /opt is read-only at runtime; state/logs live under the /var symlink

@@ -1,0 +1,9 @@
+# restic exclusions (patterns match real paths under /etc, /var/lib, /var/home)
+/var/lib/flatpak
+/var/lib/containers/storage
+/var/home/*/.cache
+/var/home/*/.local/share/Trash
+/var/home/*/.npm
+/var/home/*/.rustup
+/var/home/*/.cargo/registry
+/var/home/*/.local/share/Steam/steamapps/shadercache

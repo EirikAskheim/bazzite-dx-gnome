@@ -70,6 +70,37 @@ ujust openviking-server-doctor
 The service can then be managed with `systemctl status|restart openviking-server`.
 It is intentionally not enabled by default until the initialization recipe completes.
 
+## Mudfish VPN
+
+Mudfish runs as the `mudfish` systemd service (`mudfish.service`, headless). Its
+runtime state lives in `/var/lib/mudfish` and its web UI is served at
+[http://127.0.0.1:8282](http://127.0.0.1:8282).
+
+The service wrapper keeps Mudfish's **Auto Connect** setting (Launcher
+`Setup -> Program -> Launcher -> Auto Connect`) enabled, so the daemon starts
+its core processes immediately after the sign-in event. To also sign in at
+boot without opening the web UI, store your credentials once with:
+
+```bash
+ujust mudfish-setup
+```
+
+This writes your Mudfish account and password to `/etc/mudfish/credentials`
+(root-only; it is never part of the image) and restarts the service. After a
+reboot Mudfish should sign in and connect on its own. Check with:
+
+```bash
+systemctl status mudfish --no-pager
+ps -ef | grep -E 'mudfish|mudflow'   # cores running = connected
+```
+
+To stop Mudfish connecting at startup, remove the credentials file and/or
+turn off Auto Connect in the web UI:
+
+```bash
+sudo rm /etc/mudfish/credentials
+```
+
 ## ISO
 
 If build on Fedora Atomic, you can generate an offline ISO with the instructions available [here](https://blue-build.org/how-to/generate-iso/#_top). These ISOs cannot unfortunately be distributed on GitHub for free due to large sizes, so for public projects something else has to be used for hosting.

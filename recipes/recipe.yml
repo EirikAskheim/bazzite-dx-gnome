@@ -45,9 +45,16 @@ modules:
         - uv
         - firejail
         - zstd
+        - restic
         - mingw32-gcc-c++
         - mingw64-binutils
         - python3-pip
+  # The inherited Terra ROM Properties LocalSearch plugin crashes the extractor
+  # on PE files (for example Wine DLLs). Keep GNOME LocalSearch itself.
+  - type: dnf
+    remove:
+      packages:
+        - rom-properties-localsearch3
   # OpenViking server and CLI
   - type: script
     snippets:
