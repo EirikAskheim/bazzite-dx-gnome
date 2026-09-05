@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Battery Calibration Guide — ASUS ROG Flow Z13 (GZ302EA)</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #171e26;
+    --panel2: #1c2530;
+    --border: #2a3644;
+    --text: #d7e0ea;
+    --muted: #8b9aa9;
+    --accent: #4cc2ff;
+    --green: #57d9a3;
+    --yellow: #ffd166;
+    --red: #ff6b6b;
+    --mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 20px 80px; }
+  header.hero {
+    border: 1px solid var(--border);
+    background: linear-gradient(160deg, #14202b 0%, var(--panel) 60%);
+    border-radius: 14px;
+    padding: 28px 30px;
+    margin-bottom: 26px;
+  }
+  header.hero h1 { margin: 0 0 4px; font-size: 1.55rem; }
+  header.hero .sub { color: var(--muted); margin: 0 0 14px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .badge {
+    font-size: .78rem; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--panel2); color: var(--muted);
+    font-family: var(--mono);
+  }
+  .badge.ok { color: var(--green); border-color: rgba(87,217,163,.4); }
+  .badge.warn { color: var(--yellow); border-color: rgba(255,209,102,.4); }
+
+  h2 {
+    font-size: 1.15rem; margin: 34px 0 12px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  h2 .num {
+    background: var(--accent); color: #062033; border-radius: 6px;
+    font-size: .85rem; padding: 1px 9px; font-weight: 700;
+  }
+  h3 { font-size: 1rem; margin: 20px 0 8px; color: var(--accent); }
+
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+  tr:last-child td { border-bottom: none; }
+  td code, .k { font-family: var(--mono); font-size: .86em; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 18px;
+  }
+  .card .label { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
+  .card .value { font-size: 1.2rem; font-weight: 600; margin-top: 2px; font-family: var(--mono); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 10px; }
+
+  .step { display: flex; gap: 14px; margin: 16px 0; }
+  .step .n {
+    flex: 0 0 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #062033;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; margin-top: 2px;
+  }
+  .step .body { flex: 1; }
+  .step h4 { margin: 0 0 6px; font-size: 1rem; }
+  .step p { margin: 6px 0; }
+
+  pre {
+    background: #0b0f14; border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; overflow-x: auto; font-family: var(--mono);
+    font-size: .84rem; line-height: 1.55; margin: 8px 0;
+  }
+  .inline { background: #0b0f14; border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: .88em; }
+
+  .warnbox {
+    border: 1px solid rgba(255,209,102,.4); background: rgba(255,209,102,.07);
+    border-radius: 10px; padding: 14px 18px; margin: 14px 0;
+  }
+  .goodbox {
+    border: 1px solid rgba(87,217,163,.4); background: rgba(87,217,163,.07);
+    border-radius: 10px; padding: 14px 18px; margin: 14px 0;
+  }
+  .warnbox h3, .goodbox h3 { margin-top: 0; }
+  ul, ol { padding-left: 22px; }
+  li { margin: 5px 0; }
+  .small { font-size: .88rem; }
+  .muted { color: var(--muted); }
+  footer { margin-top: 46px; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border); padding-top: 14px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>Battery Calibration Guide</h1>
+  <p class="sub">ASUS ROG Flow Z13 (GZ302EA) · Ryzen AI MAX+ 395 · Bazzite 44 · Li-ion 70 Wh (design)</p>
+  <div class="badges">
+    <span class="badge">BAT0 · ACPI smart battery</span>
+    <span class="badge">baseline 62.83 / 70.0 Wh (89.7 %)</span>
+    <span class="badge">cycle count 0</span>
+    <span class="badge ok">charge limit: 100 % (lifted for calibration)</span>
+    <span class="badge warn">80 % boot-timer: disabled during calibration</span>
+  </div>
+</header>
+
+<div class="goodbox">
+  <h3>Why recalibrate</h3>
+  <p class="small" style="margin:0">
+    The battery reports <b>62.8 Wh full capacity out of a 70 Wh design at 0 charge cycles</b> — a healthy battery should read close to design.
+    The cause is almost certainly a <b>stale fuel-gauge reading</b>: the machine has spent its life charging only to the 80 % limit, so the gauge
+    has never observed a full 0–100 % swing and its learned "full" value has drifted down. One or two complete discharge → charge cycles lets
+    the gauge re-learn the true endpoints and typically recovers most of the missing capacity.
+  </p>
+</div>
+
+<h2><span class="num">00</span> Preparation — already done</h2>
+<table>
+  <tr><th style="width:260px">Action</th><th>Command / state</th></tr>
+  <tr><td>Lift charge limit to 100 %</td><td><span class="inline">charge-limit 100</span> → <span class="inline">charge_control_end_threshold = 100</span> ✓</td></tr>
+  <tr><td>Disarm 80 % boot-timer</td><td><span class="inline">systemctl --user disable --now charge-limit-80.timer</span> ✓ (prevents a reboot mid-cycle from capping the charge)</td></tr>
+  <tr><td>Baseline logged</td><td><span class="inline">~/.cache/battery-calibration.log</span> — <span class="inline">ENERGY_FULL=62826000 µWh</span> (2026-09-05)</td></tr>
+</table>
+<p class="small muted">If you start this guide later (fresh boot), re-run the two preparation commands above first.</p>
+
+<h2><span class="num">01</span> Cycle 1 — full charge</h2>
+<div class="step">
+  <div class="n">1</div>
+  <div class="body">
+    <h4>Plug in AC and charge to 100 %</h4>
+    <p>Watch it reach <span class="inline">STATUS=Full</span> / <span class="inline">CAPACITY=100</span>:</p>
+    <pre>watch -n5 'grep -E "STATUS|CAPACITY|ENERGY_FULL" /sys/class/power_supply/BAT0/uevent'</pre>
+  </div>
+</div>
+<div class="step">
+  <div class="n">2</div>
+  <div class="body">
+    <h4>Leave it plugged in 1–2 h after reaching 100 %</h4>
+    <p>Allows top-balancing and gives the gauge time to register the full point.</p>
+  </div>
+</div>
+
+<h2><span class="num">02</span> Cycle 1 — calibration discharge</h2>
+<div class="step">
+  <div class="n">3</div>
+  <div class="body">
+    <h4>Unplug and use normally until it auto-suspends</h4>
+    <p>GNOME force-suspends at critical battery (~3–5 %) — that is the natural deep-discharge endpoint.
+    No need to drain below that; deep-draining to literal zero is unnecessary and hard on the cell.</p>
+  </div>
+</div>
+<div class="step">
+  <div class="n">4</div>
+  <div class="body">
+    <h4>Optional deeper drain</h4>
+    <p>Leave the machine <i>suspended</i> for 1–2 h before recharging — it trickles down a little further, which can help the gauge.
+    Do not leave it at 0 % for long.</p>
+  </div>
+</div>
+
+<h2><span class="num">03</span> Cycle 1 — recharge &amp; check</h2>
+<div class="step">
+  <div class="n">5</div>
+  <div class="body">
+    <h4>Recharge to 100 % uninterrupted</h4>
+    <p>Plug in and let it complete to <span class="inline">Full</span>, then leave it plugged for a while longer.
+    <b>Important:</b> if you reboot during this phase, re-run <span class="inline">charge-limit 100</span> after login —
+    the 80 % timer is disabled, but the EC limit persists at whatever it was last set to.</p>
+  </div>
+</div>
+<div class="step">
+  <div class="n">6</div>
+  <div class="body">
+    <h4>Record the result</h4>
+    <pre>grep ENERGY_FULL /sys/class/power_supply/BAT0/uevent
+echo "2026-… (after cycle 1): $(grep ENERGY_FULL= /sys/class/power_supply/BAT0/uevent)" &gt;&gt; ~/.cache/battery-calibration.log</pre>
+    <p class="small muted">Note: <span class="inline">ENERGY_FULL</span> sometimes only updates on the first <i>discharge</i> after a full charge —
+    if it hasn't moved yet, unplug, use it for a few minutes, and re-read.</p>
+  </div>
+</div>
+
+<h2><span class="num">04</span> Assessment</h2>
+<table>
+  <tr><th style="width:230px">Reading after calibration</th><th>Meaning</th></tr>
+  <tr><td>≥ ~66 Wh (&gt; 94 %)</td><td>Success — gauge re-learned; battery healthy</td></tr>
+  <tr><td>63–66 Wh (90–94 %)</td><td>Partial improvement — run <b>one more full cycle</b> (repeat §01–03)</td></tr>
+  <tr><td>Stays ~63 Wh after 2 good cycles</td><td>This is the battery's real usable capacity — accept it (design Wh includes manufacturer reserve; 0 cycles rules out wear)</td></tr>
+</table>
+
+<h2><span class="num">05</span> Restore normal operation</h2>
+<pre>charge-limit 80
+systemctl --user enable --now charge-limit-80.timer
+charge-limit                    # sanity check → "battery charge limit: 80%"</pre>
+<div class="goodbox">
+  <h3>Expected normal behavior afterwards</h3>
+  <p class="small" style="margin:0">
+    The 80 % limit and boot-timer resume protecting the battery on AC.
+    When you want a full charge (e.g. before a trip): <span class="inline">charge-limit 100</span> — the next boot's timer
+    automatically returns the limit to 80 %. The panel-refresh service (60 Hz on battery) is unrelated to charging and keeps working.
+  </p>
+</div>
+
+<h2><span class="num">06</span> Safety &amp; troubleshooting</h2>
+<div class="warnbox">
+  <h3>Safety</h3>
+  <ul class="small">
+    <li>Calibration is occasional maintenance — near-empty discharges are fine every few months, <b>not</b> as a daily habit.</li>
+    <li>Never store the machine at 0 % — recharge promptly after the discharge phase.</li>
+    <li>Keep AC plugged and don't interrupt charging mid-way for no reason (harmless, just slows the gauge update).</li>
+    <li>This machine's battery is internal; no user-accessible removal needed for calibration.</li>
+  </ul>
+</div>
+<h3>Troubleshooting</h3>
+<table class="small">
+  <tr><th style="width:250px">Symptom</th><th>Fix</th></tr>
+  <tr><td>Charge stops at 80 % during calibration</td><td>EC limit was reset (e.g. after reboot) — run <span class="inline">charge-limit 100</span></td></tr>
+  <tr><td><span class="inline">ENERGY_FULL</span> doesn't move after cycle 1</td><td>Run one discharge after the full charge, then re-read; if still flat, do a second full cycle</td></tr>
+  <tr><td>Capacity % jumps erratically mid-discharge</td><td>Normal during re-learning — let the cycle finish</td></tr>
+  <tr><td>Cycle count still 0 after cycles</td><td>Normal on some ACPI ECs; capacity is the metric that matters</td></tr>
+  <tr><td>Voltage stays high but % drops fast near the end</td><td>Classic gauge drift — exactly what this procedure fixes</td></tr>
+</table>
+
+<footer>
+  Companion to the <a href="power-analysis.html">power analysis report</a> (same directory).<br>
+  Baseline recorded 2026-09-05 · generated from live measurements on this machine.
+</footer>
+
+</div>
+</body>
+</html>
