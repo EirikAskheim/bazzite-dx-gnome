@@ -101,6 +101,55 @@ turn off Auto Connect in the web UI:
 sudo rm /etc/mudfish/credentials
 ```
 
+## Backups (restic → bokhylla)
+
+The image includes restic and a `ujust restic-*` recipe set for encrypted,
+incremental backups over SSH to the `bokhylla` home server (restic `sftp`
+backend, repository stored on the `tank` ZFS pool). On bokhylla the
+repository lives in its own dataset (`tank/pc/bazzite`), alongside the other
+PC backups under `tank/pc/`.
+
+One-time setup, run after rebase (or before the next rebase directly from a
+repo checkout with `just -f files/justfiles/restic.just restic-setup`):
+
+```bash
+ujust restic-setup
+```
+
+It prompts for the backup host and repository path (defaults:
+`eirik@bokhylla`, `/tank/pc/bazzite/restic`), generates a repository
+passphrase, and stores everything root-only in `/etc/restic/` plus a
+dedicated SSH key in `/root/.ssh/`. The backup key is authorized on bokhylla
+automatically over your existing SSH access. The remote directory must be
+writable by the remote account; on bokhylla it was created once with:
+
+```bash
+ssh bokhylla 'sudo zfs create tank/pc/bazzite && sudo chown eirik:users /tank/pc/bazzite'
+```
+
+Then run backups on demand:
+
+```bash
+ujust restic-backup      # /etc, /var/lib and your home directory
+ujust restic-snapshots   # list stored snapshots
+ujust restic-check       # verify repository integrity
+```
+
+Each backup stores one snapshot containing `/etc`, `/var/lib` and the
+invoking user's home directory. Caches and regenerable data are excluded
+(see `/etc/restic/excludes`): `~/.cache`, `Trash`, `~/.npm`, `~/.rustup`,
+the Cargo registry cache, Steam shader caches, system Flatpaks and container
+image storage. The restic repository passphrase printed by `restic-setup` is
+stored root-only in `/etc/restic/password`; keep a copy in your password
+manager — without it the repository cannot be read.
+
+To restore a snapshot, use restic directly as root (the repository
+configuration lives in `/etc/restic/env`):
+
+```bash
+sudo bash -c 'set -a; . /etc/restic/env; set +a; exec restic restore latest --target /'
+```
+
 ## ISO
 
 If build on Fedora Atomic, you can generate an offline ISO with the instructions available [here](https://blue-build.org/how-to/generate-iso/#_top). These ISOs cannot unfortunately be distributed on GitHub for free due to large sizes, so for public projects something else has to be used for hosting.

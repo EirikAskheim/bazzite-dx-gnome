@@ -1,6 +1,7 @@
 # restic exclusions (patterns match real paths under /etc, /var/lib, /var/home)
 /var/lib/flatpak
 /var/lib/containers/storage
+/var/lib/ollama/models
 /var/home/*/.cache
 /var/home/*/.local/share/Trash
 /var/home/*/.npm

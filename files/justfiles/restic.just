@@ -47,17 +47,17 @@ restic-setup:
 
     # Canonical exclude list (also shipped in the image at /etc/restic/excludes).
     if [[ ! -f /etc/restic/excludes ]]; then
-        sudo tee /etc/restic/excludes >/dev/null <<'EOF'
-# restic exclusions (patterns match real paths under /etc, /var/lib, /var/home)
-/var/lib/flatpak
-/var/lib/containers/storage
-/var/home/*/.cache
-/var/home/*/.local/share/Trash
-/var/home/*/.npm
-/var/home/*/.rustup
-/var/home/*/.cargo/registry
-/var/home/*/.local/share/Steam/steamapps/shadercache
-EOF
+        printf '%s\n' \
+            '/var/lib/flatpak' \
+            '/var/lib/containers/storage' \
+            '/var/lib/ollama/models' \
+            '/var/home/*/.cache' \
+            '/var/home/*/.local/share/Trash' \
+            '/var/home/*/.npm' \
+            '/var/home/*/.rustup' \
+            '/var/home/*/.cargo/registry' \
+            '/var/home/*/.local/share/Steam/steamapps/shadercache' \
+            | sudo tee /etc/restic/excludes >/dev/null
         sudo chown root:root /etc/restic/excludes
         sudo chmod 0600 /etc/restic/excludes
     fi
@@ -71,7 +71,7 @@ EOF
 
     # Authorize the root backup key on the remote account by appending it over
     # the desktop user's existing SSH access.
-    if ! ssh -o BatchMode=yes "${REMOTE}" "grep -qxF '${BACKUP_KEY}' ~/.ssh/authorized_keys"; then
+    if ! ssh -o BatchMode=yes "${REMOTE}" "grep -qxF '${BACKUP_KEY}' ~/.ssh/authorized_keys 2>/dev/null"; then
         ssh "${REMOTE}" "umask 077; mkdir -p ~/.ssh; touch ~/.ssh/authorized_keys; chmod 600 ~/.ssh/authorized_keys; echo '${BACKUP_KEY}' >> ~/.ssh/authorized_keys"
         echo "Authorized the root backup key on ${REMOTE}."
     else
