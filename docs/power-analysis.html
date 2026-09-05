@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Power Usage Analysis — ASUS ROG Flow Z13 (GZ302EA) on Bazzite</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #171e26;
+    --panel2: #1c2530;
+    --border: #2a3644;
+    --text: #d7e0ea;
+    --muted: #8b9aa9;
+    --accent: #4cc2ff;
+    --green: #57d9a3;
+    --yellow: #ffd166;
+    --red: #ff6b6b;
+    --mono: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 32px 20px 80px; }
+  header.hero {
+    border: 1px solid var(--border);
+    background: linear-gradient(160deg, #14202b 0%, var(--panel) 60%);
+    border-radius: 14px;
+    padding: 28px 30px;
+    margin-bottom: 26px;
+  }
+  header.hero h1 { margin: 0 0 4px; font-size: 1.6rem; letter-spacing: -0.01em; }
+  header.hero .sub { color: var(--muted); margin: 0 0 14px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .badge {
+    font-size: .78rem; padding: 3px 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--panel2); color: var(--muted);
+    font-family: var(--mono);
+  }
+  .badge.warn { color: var(--yellow); border-color: rgba(255,209,102,.4); }
+  .badge.ok { color: var(--green); border-color: rgba(87,217,163,.4); }
+  .badge.bad { color: var(--red); border-color: rgba(255,107,107,.4); }
+
+  h2 {
+    font-size: 1.15rem; margin: 34px 0 12px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  h2 .num {
+    background: var(--accent); color: #062033; border-radius: 6px;
+    font-size: .85rem; padding: 1px 9px; font-weight: 700;
+  }
+  h3 { font-size: 1rem; margin: 20px 0 8px; color: var(--accent); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .card .label { color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; }
+  .card .value { font-size: 1.15rem; font-weight: 600; margin-top: 2px; font-family: var(--mono); }
+  .card .note { color: var(--muted); font-size: .85rem; margin-top: 4px; }
+
+  .meter-row { display: flex; align-items: center; gap: 12px; margin: 10px 0; }
+  .meter-row .lbl { width: 150px; font-size: .85rem; color: var(--muted); }
+  .meter { flex: 1; height: 14px; background: var(--panel2); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+  .meter > div { height: 100%; border-radius: 8px; }
+  .bar-gpu { background: linear-gradient(90deg,#4cc2ff,#8a63ff); width: 62%; }
+  .bar-cpu { background: linear-gradient(90deg,#57d9a3,#4cc2ff); width: 24%; }
+  .bar-rest { background: var(--yellow); width: 14%; }
+  .meter-row .val { width: 90px; text-align: right; font-family: var(--mono); font-size: .85rem; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+  tr:last-child td { border-bottom: none; }
+  td code, .k { font-family: var(--mono); font-size: .86em; }
+
+  pre {
+    background: #0b0f14; border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; overflow-x: auto; font-family: var(--mono);
+    font-size: .85rem; line-height: 1.55;
+  }
+  code, .mono { font-family: var(--mono); }
+  .inline { background: #0b0f14; border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-size: .88em; }
+
+  .issue { background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--yellow); border-radius: 10px; padding: 16px 18px; margin: 14px 0; }
+  .issue.sev-high { border-left-color: var(--red); }
+  .issue h4 { margin: 0 0 6px; font-size: 1rem; }
+  .issue .tag { font-size: .72rem; padding: 1px 8px; border-radius: 999px; margin-left: 8px; vertical-align: 2px; font-weight: 600; }
+  .tag.impact-high { background: rgba(255,107,107,.15); color: var(--red); }
+  .tag.impact-med { background: rgba(255,209,102,.15); color: var(--yellow); }
+  .tag.impact-low { background: rgba(139,154,169,.15); color: var(--muted); }
+  .tag.stat-done { background: rgba(87,217,163,.15); color: var(--green); }
+  .tag.stat-part { background: rgba(255,209,102,.15); color: var(--yellow); }
+  .tag.stat-open { background: rgba(139,154,169,.15); color: var(--muted); }
+  .issue ul { margin: 8px 0 0; padding-left: 20px; }
+  .issue li { margin: 4px 0; }
+  .fix { background: var(--panel2); border-radius: 8px; padding: 10px 14px; margin-top: 10px; font-size: .9rem; }
+  .fix .flabel { color: var(--green); font-weight: 600; text-transform: uppercase; font-size: .74rem; letter-spacing: .06em; }
+
+  .good { border: 1px solid rgba(87,217,163,.35); background: rgba(87,217,163,.06); border-radius: 10px; padding: 14px 18px; margin: 8px 0; }
+  .good b { color: var(--green); }
+
+  .checklist li { margin: 6px 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: .85rem; }
+  footer { margin-top: 46px; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--border); padding-top: 14px; }
+  .step-num { display:inline-block; background:var(--accent); color:#062033; width:24px; height:24px; text-align:center; line-height:24px; border-radius:50%; font-weight:700; margin-right:8px; font-size:.85rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>Power Usage Analysis — in-use battery consumption</h1>
+  <p class="sub">ASUS ROG Flow Z13 (GZ302EA, 2025) · Ryzen AI MAX+ 395 · Bazzite 44 (deck-gnome) · BIOS 311 · measured on battery</p>
+  <div class="badges">
+    <span class="badge">AMD Strix Halo · 16C/32T</span>
+    <span class="badge">Radeon 8060S (iGPU only)</span>
+    <span class="badge">128 GB LPDDR5X unified</span>
+    <span class="badge">eDP 2560×1600 · 60 Hz on battery ✓</span>
+    <span class="badge warn">~13 W in-use draw</span>
+    <span class="badge">GPU ~7.5 W idle · MCLK 400 MHz ✓</span>
+    <span class="badge">EPP power · platform quiet</span>
+    <span class="badge ok">BIOS 314 flashed ✓</span>
+  </div>
+</header>
+
+<h2><span class="num">01</span> System &amp; baseline measurements</h2>
+
+<table>
+  <tr><th style="width:210px">Property</th><th>Value</th></tr>
+  <tr><td>Hardware</td><td>ASUS ROG Flow Z13 <span class="inline">GZ302EA_GZ302EA</span> (convertible)</td></tr>
+  <tr><td>OS / Image</td><td>Bazzite 44 · <span class="inline">bazzite-deck-gnome-44.20260902</span> · Kernel 7.2.1-ogc4.1.fc44</td></tr>
+  <tr><td>CPU</td><td>AMD Ryzen AI MAX+ 395 · 16 cores / 32 threads · boost to 5.19 GHz</td></tr>
+  <tr><td>GPU</td><td>AMD Radeon 8060S (Strix Halo iGPU, <span class="inline">amdgpu</span>, no dGPU present)</td></tr>
+  <tr><td>Memory</td><td>128 GiB LPDDR5X unified · GTT carve-out <span class="inline">amdgpu.gttsize=131072</span></td></tr>
+  <tr><td>Battery</td><td>70 Wh design · 63.4 Wh full · 0 cycles · <span class="inline">POWER_NOW ≈ 12 W</span> at idle</td></tr>
+  <tr><td>Power mgmt stack</td><td><span class="inline">tuned</span> + <span class="inline">tuned-ppd</span> (no TLP / power-profiles-daemon — correct per image)</td></tr>
+  <tr><td>CPU governor / EPP</td><td><span class="inline">powersave</span> (amd-pstate-epp active) · EPP <span class="inline">power</span></td></tr>
+  <tr><td>ASUS EC profile</td><td><span class="inline">platform_profile = quiet</span> (Silent) · throttle policy 2</td></tr>
+  <tr><td>PPD active profile</td><td><span class="inline">performance</span> → tuned <span class="inline">throughput-performance-bazzite</span> ⚠ on battery</td></tr>
+  <tr><td>Panel</td><td>eDP 2560×1600 <b>@ 180 Hz fixed</b> (VRR mode available, not enabled) · brightness ≈ 30 %</td></tr>
+</table>
+
+<h3>Where the watts go (idle desktop, in use)</h3>
+<div class="card" style="margin-top:6px">
+  <div class="meter-row">
+    <div class="lbl">Display / iGPU (amdgpu)</div>
+    <div class="meter"><div class="bar-gpu"></div></div>
+    <div class="val">~7.4 W (62 %)</div>
+  </div>
+  <div class="meter-row">
+    <div class="lbl">CPU package + rest of SoC</div>
+    <div class="meter"><div class="bar-cpu"></div></div>
+    <div class="val">~2.9 W (24 %)</div>
+  </div>
+  <div class="meter-row">
+    <div class="lbl">Peripherals, radios, misc.</div>
+    <div class="meter"><div class="bar-rest"></div></div>
+    <div class="val">~1.7 W (14 %)</div>
+  </div>
+  <p class="small muted" style="margin-bottom:0">GPU busy 11–14 % while rendering the 180 Hz desktop — the display pipeline dominates idle draw. CPU reports a 2.0 GHz floor, but that is the <span class="inline">amd_pstate_lowest_nonlinear_freq</span> counter artifact of EPP-active mode, not real power burn — do not chase it.</p>
+</div>
+
+<h2><span class="num">02</span> Issues found, ranked by impact</h2>
+
+<div class="issue sev-high">
+  <h4>1. Power profile pinned to “Performance” — even on battery <span class="tag impact-high">HIGH</span> <span class="tag stat-done">STATUS: fixed ✓</span></h4>
+  <p class="small">PPD <span class="inline">ActiveProfile = performance</span>, so tuned runs <span class="inline">throughput-performance-bazzite</span> while discharging: CPU boost forced on (<span class="inline">cpb_boost=enabled</span>), game-oriented sysctls (<span class="inline">vm.swappiness=180</span>…), and <b>audio codec never sleeps</b> (<span class="inline">snd power_save = 0</span>). tuned-ppd only remaps <span class="inline">balanced</span>/<span class="inline">power-saver</span> for battery — <i>performance is never downshifted on AC removal</i>. The ASUS <span class="inline">quiet</span> EC profile (→ EPP <span class="inline">power</span>) partially compensates; the two stacks are working against each other.</p>
+  <div class="fix">
+    <div class="flabel">Fix — immediate (syncs GNOME Quick Settings)</div>
+    <pre>sudo busctl --system set-property net.hadess.PowerProfiles \
+  /net/hadess/PowerProfiles net.hadess.PowerProfiles \
+  ActiveProfile s balanced</pre>
+  </div>
+  <div class="fix">
+    <div class="flabel">Fix — automatic (AC = performance, battery = battery-tuned)</div>
+    <p class="small">ppd.conf already has a <span class="inline">[battery]</span> section, and tuned-ppd enforces an <i>injective</i> map (no two PPD profiles → same tuned profile). Bazzite already uses <span class="inline">balanced-battery-bazzite</span> for <span class="inline">balanced</span>, so battery <span class="inline">performance</span> must map to the plain <span class="inline">balanced-battery</span> profile (same EPP/panel-savings/audio tuning, minus the Bazzite extras).</p>
+    <pre># map battery+performance to the plain balanced-battery profile:
+sudo sed -i 's/^performance=balanced-battery-bazzite$/performance=balanced-battery/' /etc/tuned/ppd.conf
+# (if you never added the line, append it inside [battery] instead:
+#  echo "performance=balanced-battery" | sudo tee -a /etc/tuned/ppd.conf)
+sudo systemctl restart tuned-ppd</pre>
+  </div>
+</div>
+
+<div class="issue sev-high">
+  <h4>2. Panel fixed at 180 Hz — main driver of the ~7 W GPU idle draw <span class="tag impact-high">HIGH</span> <span class="tag stat-done">STATUS: done ✓</span></h4>
+  <p class="small">DCN + eDP link + panel at max refresh, with Panel Self-Refresh rarely engaging over an animated desktop. This is the largest available in-use saving.</p>
+  <p class="small" style="color:var(--green)">Status (2026-09-05): <b>fixed 60 Hz is now enforced automatically on battery</b> via the user service <span class="inline">panel-refresh.service</span> (<span class="inline">~/.local/bin/panel-refresh</span>, polls every 10 s): battery → <span class="inline">2560x1600@60.000</span>, AC → restores <span class="inline">2560x1600@180.000+vrr</span>. Measured −≈3 W (12.6–13.3 W → 9.5–9.7 W on the same in-use desktop).</p>
+  <ul>
+    <li><b>Manual:</b> Settings → Displays → 60 Hz when unplugged. Typical saving on this class of panel: <b>−1.5…−4 W</b>.</li>
+    <li><b>Optional automation:</b> systemd service reacting to <span class="inline">BAT0</span> power-source events calling <span class="inline">gnome-randr</span> to flip refresh rate. Can be baked into this image repo (<span class="inline">files/system/</span> + justfile).</li>
+    <li><b>Alternative:</b> enable VRR/adaptive-sync so the panel can drop below 180 Hz — less deterministic than a fixed 60 Hz on a static desktop.</li>
+  </ul>
+</div>
+
+<div class="issue">
+  <h4>3. Verify GPU memory clock actually downclocks <span class="tag impact-med">MEDIUM — verify</span> <span class="tag stat-done">verified ✓</span></h4>
+  <p class="small">On Strix Halo, pinned UCLK/MCLK is a classic idle-power bug (LPDDR5X at full rate draws several watts). The 128 GB GTT carve-out kargs do not pin clocks by themselves, but high refresh + large framebuffer allocations can. Requires root:</p>
+  <pre>sudo cat /sys/kernel/debug/dri/1/amdgpu_pm_info | grep -iE "uclk|sclk|mclk"</pre>
+  <p class="small">If UCLK/MCLK shows max while idle, that is a separate real problem to chase (and the <span class="inline">amdgpu.gttsize=131072</span> / <span class="inline">ttm.pages_limit</span> kargs become suspect).</p>
+  <p class="small" style="color:var(--green)">Result (2026-09-05): <b>MCLK = 400 MHz, SCLK = 704 MHz</b> at idle — clocks downclock correctly, no pinned-memory issue. Average SoC power 7.8 W (incl. CPU) at ~10 % GPU load. Nothing to chase here.</p>
+</div>
+
+<div class="issue">
+  <h4>4. thermald installed but inactive <span class="tag impact-med">LOW</span> <span class="tag stat-open">STATUS: still open</span></h4>
+  <p class="small"><span class="inline">thermald.service</span> is enabled but not running. Thermal management shapes the sustained power/performance budget. Check <span class="inline">journalctl -u thermald</span> — fix it or mask it deliberately. (GPU/CPU temps affect fan + boost headroom.)</p>
+</div>
+
+<div class="issue">
+  <h4>5. Firmware — updated to BIOS 314 <span class="tag impact-med">resolved</span> <span class="tag stat-done">STATUS: done ✓</span></h4>
+  <ul>
+    <li><b>Status:</b> was <b>311</b> (2025-09-19) → <b>314</b> (2026-07-20) flashed from the ESP via EZ Flash 3, verified 2026-09-05 (<span class="inline">dmidecode → GZ302EA.314</span>).</li>
+    <li>✓ AGESA update applied — watch for changes in power limits / idle behavior / battery life.</li>
+    <li>Caveats: ASUS publishes no release notes; community threads report flaky GZ302EA BIOSes; no Windows partition exists here and fwupd has no System-Firmware device — so flashing is via <b>ASUS EZ Flash 3</b> only. Full step-by-step in <b>§06</b> below.</li>
+  </ul>
+</div>
+
+<div class="issue">
+  <h4>6. Battery state notes <span class="tag impact-low">LOW</span> <span class="tag stat-done">STATUS: done ✓</span></h4>
+  <ul>
+    <li>Full capacity reads <b>63.4 / 70 Wh at 0 cycles</b> (2026-09-05: 62.8 Wh) — likely recalibration-needed or never fully cycled.</li>
+    <li><b>Charge limit set to 80 %</b>; <span class="inline">~/.local/bin/charge-limit</span> (usage: <span class="inline">charge-limit 80|100</span>) and the user timer <span class="inline">charge-limit-80.timer</span> re-apply 80 % shortly after every boot. Run <span class="inline">charge-limit 100</span> before a trip for a full charge.</li>
+  </ul>
+</div>
+
+<h2><span class="num">03</span> Already correct — leave alone</h2>
+<div class="good"><b>✔</b> <span class="inline">amd-pstate-epp</span> active, governor <span class="inline">powersave</span>, EPP <span class="inline">power</span> — do <b>not</b> stack TLP / auto-cpufreq / power-profiles-daemon on top; tuned is the right mechanism.</div>
+<div class="good"><b>✔</b> Wi-Fi power save <span class="inline">on</span>, USB autosuspend 2 s, NVMe runtime-PM <span class="inline">auto</span>.</div>
+<div class="good"><b>✔</b> No dGPU to runtime-suspend; deck-vs-laptop detection correctly unmasked <span class="inline">tuned</span>/<span class="inline">tuned-ppd</span> on this non-handheld.</div>
+<div class="good"><b>✔</b> ASUS EC <span class="inline">quiet</span> profile keeps EPP at <span class="inline">power</span> — good battery behavior; raise it only when on AC and you want headroom.</div>
+
+<h2><span class="num">04</span> Additions for insight</h2>
+
+<table>
+  <tr><th style="width:220px">Tool</th><th>What it gives you</th><th style="width:330px">How</th></tr>
+  <tr><td><span class="inline">powertop</span></td><td>Top consumers, wakeups per device, and a “tunables” tab — best first pass for insight</td><td><span class="inline">sudo powertop</span> · <span class="inline">powertop --csv=log.csv</span> for before/after logs</td></tr>
+  <tr><td><span class="inline">turbostat</span> (kernel-tools)</td><td>Gold standard: package watts via RAPL + C-state/frequency residency — one number to compare every tweak</td><td><span class="inline">sudo turbostat --quiet --show Busy%,PkgWatt,PkgTmp sleep 60</span></td></tr>
+  <tr><td>Live GPU watts</td><td>Instant iGPU draw, no root</td><td><span class="inline">cat /sys/class/drm/card1/device/hwmon/hwmon8/power1_average</span></td></tr>
+  <tr><td>System battery telemetry</td><td>Continuous discharge tracking</td><td><span class="inline">upower -d</span>, or sample <span class="inline">/sys/class/power_supply/BAT0/power_now</span> in a loop</td></tr>
+  <tr><td>GNOME Power Statistics</td><td>Built-in history view of battery/energy</td><td>Settings → Power → history chart</td></tr>
+</table>
+
+<div class="card" style="margin-top:12px">
+  <p style="margin:0 0 6px"><b>Repo-friendly additions</b> (this machine runs a custom BlueBuild image — <span class="inline">files/justfiles/</span> are validated, so these slot straight in):</p>
+  <ul class="checklist small" style="margin:6px 0 0">
+    <li><span class="inline">ujust power-log N</span> — sample <span class="inline">power_now</span> + <span class="inline">gpu_busy_percent</span> + CPU state every second → CSV</li>
+    <li><span class="inline">ujust power-baseline</span> — runs the 60 s turbostat summary, prints one comparable number</li>
+    <li>Layer <span class="inline">powertop</span> and <span class="inline">kernel-tools</span> in <span class="inline">recipes/recipe.yml</span></li>
+  </ul>
+</div>
+
+<h2><span class="num">05</span> Suggested validation sequence</h2>
+<ol class="checklist">
+  <li><span class="step-num">✓</span>Baseline measured: <b>≈ 12 W</b> @ 30 % brightness, 180 Hz fixed</li>
+  <li><span class="step-num">✓</span>Issue #1 applied: battery maps active — <span class="inline">balanced-battery-bazzite</span> on battery, audio timeout 10 s, EPP <span class="inline">power</span></li>
+  <li><span class="step-num">✓</span>Panel: <b>60 Hz on battery automated</b> (<span class="inline">panel-refresh.service</span>) — AC restores 180+vrr; measured ≈ −3 W</li>
+  <li><span class="step-num">✓</span>MCLK verified at <b>400 MHz</b>, SCLK 704 MHz idle — no pinned clocks</li>
+  <li><span class="step-num">✓</span>BIOS <b>314</b> flashed via EZ Flash 3 and verified</li>
+</ol>
+
+<h2><span class="num">06</span> Firmware updates on this machine (Bazzite / ublue)</h2>
+
+<p class="small"><b>Verified:</b> fwupd exposes <i>no “System Firmware” (UEFI capsule) device</i> on this laptop — ASUS does not publish the GZ302EA BIOS on LVFS, so <span class="inline">fwupdmgr update</span> can <b>not</b> update the BIOS here. The <span class="inline">fwupdmgr get-devices</span> list only shows webcam/TPM/APU blocks, all without LVFS updates. All firmware goes through ASUS tooling, which is OS-independent — running an atomic image (Bazzite/ostree) makes no difference to the process.</p>
+
+<div class="card">
+  <table>
+    <tr><td>Currently installed</td><td><span class="inline">GZ302EA.314</span> (2026-07-20) · flashed via EZ Flash 3 from the ESP, verified 2026-09-05 ✓</td></tr>
+    <tr><td>Previous → latest</td><td>311 (2025-09-19) → <span class="inline">314</span> (2026-08-31, severity <i>Critical</i>) — machine now up to date</td></tr>
+    <tr><td>Windows partition?</td><td>None (Boot0000 entry is a leftover) → EZ Flash route only</td></tr>
+    <tr><td>Secure Boot</td><td>Disabled (Setup Mode) — irrelevant for EZ Flash</td></tr>
+  </table>
+</div>
+
+<h3>Method — ASUS EZ Flash 3 (no Windows needed, recommended)</h3>
+<ol class="checklist">
+  <li><b>Download</b> from ASUS support: ROG Flow Z13 (2025) GZ302 → Driver &amp; Tools → BIOS &amp; FIRMWARE → select model <span class="inline">GZ302EA</span> → <i>“BIOS for ASUS EZ Flash Utility”</i> <b>Version 314</b> (14.25 MB). Direct page: <span class="inline">rog.asus.com/laptops/rog-flow/rog-flow-z13-2025/helpdesk_bios/</span></li>
+  <li><b>Prepare USB:</b> format a USB stick FAT32, extract the ZIP, copy <span class="inline">GZ302EAAS.314</span> (the <span class="inline">.cap</span>) to its root.</li>
+  <li><b>Enter BIOS:</b> shut down, plug in the <b>AC adapter</b>, press <b>F2</b> repeatedly at power-on (or Esc → Setup).</li>
+  <li><b>Flash:</b> Advanced Mode (<b>F7</b>) → Tool → <b>ASUS EZ Flash 3 Utility</b> → select the file from the USB stick → confirm. Takes ~5 min — <b>do not power off or unplug</b>.</li>
+  <li><b>Verify:</b> after reboot check <span class="inline">sudo dmidecode -s bios-version</span> → expect <span class="inline">GZ302EA.314</span>.</li>
+</ol>
+
+<h3>Optional peripheral firmware (Windows-only tools)</h3>
+<p class="small">The same ASUS page hosts <i>ROG PD Firmware</i> (USB-C PD/PPS charging behavior), <i>Keyboard</i> (LED issues) and <i>Light Bar</i> updaters — all Windows executables. None are available from Linux. Only relevant if you observe charging quirks or keyboard/LED bugs.</p>
+
+<div class="good" style="margin-top:10px"><b>⚠ Precautions:</b>
+  <ul class="small" style="margin:6px 0 0">
+    <li>AC power mandatory; never interrupt a flash (brick risk).</li>
+    <li>314 shipped 2026-08-31 and ASUS publishes no release notes — skim <span class="inline">r/FlowZ13</span> / the ROG forum for 314 reports first; GZ302EA has had problematic BIOS releases before.</li>
+    <li>BIOS updates are orthogonal to Bazzite: ostree/kernel/boot config are untouched; nothing to reconfigure afterwards.</li>
+  </ul>
+</div>
+
+<h2><span class="num">07</span> Status snapshot — 2026-09-05</h2>
+
+<table>
+  <tr><th style="width:230px">Report item</th><th>Status</th></tr>
+  <tr><td>1 · Power profile / battery maps</td><td><b style="color:var(--green)">✓ fixed</b> — tuned <span class="inline">balanced-battery-bazzite</span> on battery (PPD <span class="inline">balanced</span>), <span class="inline">performance→balanced-battery</span> in ppd.conf, audio timeout 10 s, EPP <span class="inline">power</span></td></tr>
+  <tr><td>2 · Panel 180 Hz</td><td><b style="color:var(--green)">✓ done</b> — <span class="inline">panel-refresh.service</span>: 60 Hz on battery (was 180+vrr), restores 180+vrr on AC; measured −≈3 W</td></tr>
+  <tr><td>3 · GPU memory clocks</td><td><b style="color:var(--green)">✓ verified</b> — MCLK 400 MHz / SCLK 704 MHz at idle, SoC avg 7.8 W @ 10 % GPU load</td></tr>
+  <tr><td>4 · thermald inactive</td><td><b style="color:var(--muted)">⏳ open</b> — service still inactive; fix or mask deliberately</td></tr>
+  <tr><td>5 · BIOS</td><td><b style="color:var(--green)">✓ done</b> — 311 → <span class="inline">GZ302EA.314</span> (2026-07-20), flashed via EZ Flash 3, verified</td></tr>
+  <tr><td>6 · Charge limit</td><td><b style="color:var(--green)">✓ done</b> — 80 % active + <span class="inline">charge-limit</span> script &amp; boot timer (fires 1 min after login)</td></tr>
+</table>
+
+<h3>Measured on battery (2026-09-05)</h3>
+<div class="card">
+  <p class="small" style="margin:0">Conditions: unplugged AC, ≈ 70 % brightness (up from 30 % during the original audit), Steam + dev session running in the background, VRR active.</p>
+  <ul class="checklist small" style="margin:8px 0 0">
+    <li>Total draw: <b>≈ 9.5–9.7 W at fixed 60 Hz</b> (was 12.6–13.3 W at 180 Hz — <b>−≈3 W</b>)</li>
+    <li>GPU: <b>~7.4 W</b> at ~5 % busy · MCLK 400 MHz · SCLK 704 MHz — panel now fixed 60 Hz on battery</li>
+    <li>CPU: EPP <span class="inline">power</span>, audio codec sleeps after 10 s, Wi-Fi power-save on</li>
+    <li>Context: ≈ 70 % brightness, Steam + dev session in background (same for both readings)</li>
+  </ul>
+</div>
+
+<h3>Remaining optional actions</h3>
+<ul class="checklist small">
+  <li><b>thermald</b> — check <span class="inline">journalctl -u thermald</span> and either fix or mask it</li>
+  <li><b>powertop</b> — optional install for ongoing insight (turbostat already present at <span class="inline">/usr/bin/turbostat</span>)</li>
+  <li><b>Cleanup</b> — after confirming boots are stable: <span class="inline">sudo rm /boot/efi/GZ302EAAS.314</span>; re-verify BIOS boot order (Fedora first) &amp; EC profile survived the flash</li>
+</ul>
+<p class="small muted">New automation installed 2026-09-05: <span class="inline">panel-refresh.service</span> (60 Hz on battery / 180+vrr on AC, 10 s poll, logs to <span class="inline">~/.cache/panel-refresh.log</span>) and <span class="inline">charge-limit</span> + timer (80 % battery limit). Disable with <span class="inline">systemctl --user disable --now panel-refresh.service</span> if manual control is ever preferred.</p>
+
+<footer>
+  Generated from live system analysis · measurements taken on battery, brightness ≈ 30 %, desktop in use.<br>
+  No sleep/blanking changes proposed — all items concern <i>in-use</i> consumption.
+</footer>
+
+</div>
+</body>
+</html>
