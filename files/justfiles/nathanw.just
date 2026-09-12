@@ -27,7 +27,10 @@ nathanw-models-download:
     fi
 
     if [ "${NATHANW_SKIP_DISK_CHECK:-0}" != "1" ]; then
-        AVAIL_GB="$(df --output=avail -BG "${MODELS_DIR}" | tail -n 1 | tr -dc '0-9')"
+        # MODELS_DIR is 0750 nathanw:nathanw, so an unprivileged df on it
+        # fails with "Permission denied"; check via sudo (the rest of this
+        # recipe needs sudo anyway).
+        AVAIL_GB="$(sudo df --output=avail -BG "${MODELS_DIR}" | tail -n 1 | tr -dc '0-9')"
         if [ "${AVAIL_GB}" -lt 120 ]; then
             echo "Only ${AVAIL_GB} GiB free under ${MODELS_DIR}; need >= 120 GiB." >&2
             echo "Free space, point weights elsewhere, or set NATHANW_SKIP_DISK_CHECK=1." >&2
