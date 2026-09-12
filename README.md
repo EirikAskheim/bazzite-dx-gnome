@@ -130,18 +130,26 @@ ssh bokhylla 'sudo zfs create tank/pc/bazzite && sudo chown eirik:users /tank/pc
 Then run backups on demand:
 
 ```bash
-ujust restic-backup      # /etc, /var/lib and your home directory
+ujust restic-backup      # /etc, /var/lib and your home directory (+ prune)
+ujust restic-forget      # apply retention without a new snapshot
 ujust restic-snapshots   # list stored snapshots
 ujust restic-check       # verify repository integrity
 ```
 
 Each backup stores one snapshot containing `/etc`, `/var/lib` and the
-invoking user's home directory. Caches and regenerable data are excluded
-(see `/etc/restic/excludes`): `~/.cache`, `Trash`, `~/.npm`, `~/.rustup`,
-the Cargo registry cache, Steam shader caches, system Flatpaks and container
-image storage. The restic repository passphrase printed by `restic-setup` is
-stored root-only in `/etc/restic/password`; keep a copy in your password
-manager — without it the repository cannot be read.
+invoking user's home directory, then runs `restic forget --prune` (keep
+7 daily, 4 weekly, 6 monthly) so old snapshots don't accumulate forever.
+Caches and regenerable data are excluded (see `/etc/restic/excludes`):
+`~/.cache`, `Trash`, `~/.npm`, `~/.rustup`, the Cargo registry cache, Steam
+shader caches, system Flatpaks, container image storage, and the Ollama /
+Nathanw model directories (`/var/lib/ollama/models`, `/var/lib/nathanw/models`).
+The exclude list is refreshed from the recipe on every `restic-setup` and
+`restic-backup` run, so image updates to it apply to existing machines.
+Note that snapshots taken before a path was excluded still hold its data
+until those snapshots age out of retention (or are forgotten explicitly
+with `restic-forget`). The restic repository passphrase printed by
+`restic-setup` is stored root-only in `/etc/restic/password`; keep a copy
+in your password manager — without it the repository cannot be read.
 
 To restore a snapshot, use restic directly as root (the repository
 configuration lives in `/etc/restic/env`):

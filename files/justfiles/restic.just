@@ -2,7 +2,13 @@
 # passphrase, and a dedicated root SSH key are stored under /etc/restic and
 # /root/.ssh (root-only; never part of the image). Run this once after rebase
 # (or from the repo with: just -f files/justfiles/restic.just restic-setup).
-restic-setup:
+#
+# The canonical exclude list lives in 'restic-sync-excludes' below and must
+# match files/system/etc/restic/excludes (shipped in the image). It is
+# refreshed on every setup and backup run, so image updates to the list apply
+# to existing machines. Each backup also runs 'restic forget --prune' with the
+# retention policy documented on 'restic-backup'.
+restic-setup: restic-sync-excludes
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -45,24 +51,7 @@ restic-setup:
     sudo chown root:root /etc/restic/env /etc/restic/password
     sudo chmod 0600 /etc/restic/env /etc/restic/password
 
-    # Canonical exclude list (also shipped in the image at /etc/restic/excludes).
-    # /etc/restic is root-only (0700), so existence must be checked via sudo.
-    if ! sudo test -f /etc/restic/excludes; then
-        printf '%s\n' \
-            '/var/lib/flatpak' \
-            '/var/lib/containers/storage' \
-            '/var/lib/ollama/models' \
-            '/var/home/*/.cache' \
-            '/var/home/*/.local/share/Trash' \
-            '/var/home/*/.npm' \
-            '/var/home/*/.rustup' \
-            '/var/home/*/.cargo/registry' \
-            '/var/home/*/.local/share/Steam/steamapps/shadercache' \
-            | sudo tee /etc/restic/excludes >/dev/null
-        sudo chown root:root /etc/restic/excludes
-        sudo chmod 0600 /etc/restic/excludes
-    fi
-
+    # Excludes were already refreshed by the restic-sync-excludes dependency.
     # Dedicated SSH key for root-run restic access to the backup host.
     # /root/.ssh is root-only (0700), so existence must be checked via sudo.
     sudo install -d -m 0700 /root/.ssh
@@ -93,9 +82,41 @@ restic-setup:
     echo "Run your first backup with 'ujust restic-backup' (or"
     echo "'just -f files/justfiles/restic.just restic-backup' before the next rebase)."
 
+# Refresh /etc/restic/excludes from the canonical list baked into this recipe.
+# This is the single source of truth at runtime: it must match
+# files/system/etc/restic/excludes (the copy shipped in the image for fresh
+# installs). Shipping a file in the image alone does not update existing
+# machines, so restic-setup and restic-backup both run this first.
+restic-sync-excludes:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    sudo install -d -m 0700 /etc/restic
+    cat <<'EOF' | sudo tee /etc/restic/excludes >/dev/null
+    /var/lib/flatpak
+    /var/lib/containers/storage
+    /var/lib/ollama/models
+    /var/lib/nathanw/models
+    /var/home/*/.cache
+    /var/home/*/.local/share/Trash
+    /var/home/*/.npm
+    /var/home/*/.rustup
+    /var/home/*/.cargo/registry
+    /var/home/*/.local/share/Steam/steamapps/shadercache
+    EOF
+    sudo chown root:root /etc/restic/excludes
+    sudo chmod 0600 /etc/restic/excludes
+    echo "Refreshed /etc/restic/excludes."
+
 # Run a restic backup of /etc, /var/lib and the invoking user's home directory,
-# using the root-only configuration created by 'restic-setup'.
-restic-backup:
+# using the root-only configuration created by 'restic-setup'. The exclude
+# list is refreshed first (see restic-sync-excludes), then a backup runs,
+# followed by 'forget --prune' with the retention below.
+#
+# Retention: keep 7 daily, 4 weekly, 6 monthly snapshots. Old snapshots beyond
+# that are forgotten and their unreferenced data pruned on every backup run,
+# so repository growth is bounded. Run 'ujust restic-forget' to apply the
+# policy without taking a new snapshot.
+restic-backup: restic-sync-excludes
     #!/usr/bin/env bash
     set -euo pipefail
 
@@ -113,7 +134,28 @@ restic-backup:
     sudo bash -c 'set -a; . /etc/restic/env; set +a; exec restic backup \
         /etc /var/lib "/var/home/${SUDO_USER}" \
         --exclude-file=/etc/restic/excludes --exclude-if-present=.nobackup'
+    echo "Applying retention (forget --prune: 7 daily, 4 weekly, 6 monthly)..."
+    sudo bash -c 'set -a; . /etc/restic/env; set +a; exec restic forget --prune \
+        --keep-daily 7 --keep-weekly 4 --keep-monthly 6'
     echo "Backup complete. See 'ujust restic-snapshots' for stored snapshots."
+
+# Apply the retention policy without taking a new snapshot.
+# Useful after exclude-list changes: snapshots taken before a path was
+# excluded still reference its blobs, so space is only reclaimed once those
+# snapshots are forgotten and prune runs. For immediate reclaim, forget the
+# pre-exclude snapshot IDs explicitly, e.g.:
+# sudo bash -c 'set -a; . /etc/restic/env; set +a; exec restic forget <id>... --prune'
+restic-forget:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if ! sudo test -f /etc/restic/env; then
+        echo "No restic configuration found. Run 'ujust restic-setup' first." >&2
+        exit 1
+    fi
+    echo "Forgetting snapshots beyond retention (7 daily, 4 weekly, 6 monthly)..."
+    sudo bash -c 'set -a; . /etc/restic/env; set +a; exec restic forget --prune \
+        --keep-daily 7 --keep-weekly 4 --keep-monthly 6'
 
 # List restic snapshots stored on the backup host.
 restic-snapshots:
