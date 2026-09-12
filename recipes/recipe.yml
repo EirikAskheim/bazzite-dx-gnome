@@ -190,12 +190,20 @@ modules:
         rm -rf "${INSTALL_DIR}"
         mkdir -p "${INSTALL_DIR}"
         tar -xzf "${TMPDIR}/nathanw.tar.gz" -C "${INSTALL_DIR}"
-        # Stable PATH entries. The _run wrapper resolves its own directory
-        # via readlink -f, so calling it through a symlink keeps the bundled
-        # Mesa RADV driver and LD_LIBRARY_PATH wiring intact.
-        ln -sfn "${INSTALL_DIR}/vulkan/llama-server" /usr/bin/llama-server-nathanw
-        ln -sfn "${INSTALL_DIR}/vulkan/llama-bench" /usr/bin/llama-bench-nathanw
-        ln -sfn "${INSTALL_DIR}/vulkan/llama-cli" /usr/bin/llama-cli-nathanw
+        # Stable PATH entries. These must be real wrapper scripts, NOT
+        # symlinks: the tarball's _run launcher resolves its payload as
+        # "$HERE/bin/$(basename "$0")", so a symlink named llama-*-nathanw
+        # looks for bin/llama-*-nathanw and dies with "No such file or
+        # directory" (readlink -f only fixes the directory part). Execing
+        # vulkan/llama-* keeps the bundled Mesa RADV + LD_LIBRARY_PATH wiring.
+        for tool in llama-server llama-bench llama-cli; do
+            printf '#!/usr/bin/env bash\n# %s from the Nathanw strix-halo-llamacpp portable tarball.\nexec %s/vulkan/%s "$@"\n' \
+                "${tool}" "${INSTALL_DIR}" "${tool}" > "/usr/bin/${tool}-nathanw"
+            chmod 755 "/usr/bin/${tool}-nathanw"
+        done
+        # No --version smoke test here: the build container has no GPU, so run
+        # the check on the host after rebasing — `ujust nathanw-verify`, or
+        # /usr/bin/llama-bench-nathanw (must report RADV STRIX_HALO).
         echo "Nathanw strix-halo-llamacpp v${VERSION} installed."
   # Mudfish Cloud VPN
   - type: dnf

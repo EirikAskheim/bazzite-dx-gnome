@@ -26,13 +26,19 @@ directly to `http://127.0.0.1:8082/v1`.
 
 | Repo path | Deploys to | Purpose |
 | --- | --- | --- |
-| `recipes/recipe.yml` (Nathanw block) | image build | Downloads the pinned tarball, extracts to `/usr/lib/nathanw/`, symlinks `/usr/bin/llama-server-nathanw` (plus `-bench`/`-cli`), smoke-tests `--version` |
+| `recipes/recipe.yml` (Nathanw block) | image build | Downloads the pinned tarball, extracts to `/usr/lib/nathanw/`, installs `/usr/bin/llama-server-nathanw` (plus `-bench`/`-cli`) as wrapper scripts (no build-time `--version` test: the build container has no GPU) |
 | `files/system/usr/lib/systemd/system/nathanw-llama-server.service` | `/usr/lib/systemd/system/` | Service unit: runs as `nathanw`, gated on `/var/lib/nathanw/.models-ready`, reads `/etc/nathanw/llama-server.conf` over baked-in defaults, execs the wrapper below |
 | `files/system/usr/libexec/nathanw-run.sh` | `/usr/libexec/` | Launcher: execs `llama-server` with the baked-in flags plus word-split `EXTRA_ARGS` (systemd does not word-split `${EXTRA_ARGS}` in `ExecStart=`, so the unit cannot pass it directly) |
 | `files/system/usr/lib/sysusers.d/nathanw.conf` | `/usr/lib/sysusers.d/` | `nathanw` user (`/sbin/nologin`, home `/var/lib/nathanw`) + `render`/`video` membership |
 | `files/system/usr/lib/tmpfiles.d/nathanw.conf` | `/usr/lib/tmpfiles.d/` | `/var/lib/nathanw`, `models/`, `slots/` owned by `nathanw` |
 | `files/justfiles/nathanw.just` | `ujust` | `nathanw-models-download`, `nathanw-setup`, `nathanw-verify`, `nathanw-bench`, `nathanw-logs`, `nathanw-status` |
 | `files/system/etc/restic/excludes` (`/var/lib/nathanw/models`) | `/etc/restic/excludes` | Keeps the ~100 GiB re-downloadable weights out of backups |
+
+The `/usr/bin/llama-*-nathanw` entries are one-line `exec` wrappers, **not
+symlinks**: the tarball's `_run` launcher picks its payload as
+`"$HERE/bin/$(basename "$0")"`, so a symlink named `llama-server-nathanw`
+would look for a nonexistent `bin/llama-server-nathanw`. Only the directory
+part is symlink-safe (`readlink -f`).
 
 Deliberately **not** preset-enabled: a fresh image has no weights, so the
 service would only crash-loop. `ujust nathanw-setup` enables + starts it
@@ -44,7 +50,8 @@ guards against accidental starts.
 ```bash
 ujust nathanw-setup     # downloads ~100 GiB (takes a long time), disables ollama, enables+starts the service
 ujust nathanw-logs      # follow the slow mmap-heavy model load
-ujust nathanw-verify    # /health + tiny chat completion
+ujust nathanw-verify    # /health + tiny chat completion (exits non-zero while
+                        # the model is still loading; see nathanw-logs)
 ```
 
 Notes:
@@ -56,7 +63,8 @@ Notes:
   `NATHANW_MODEL_REPO` / `NATHANW_MODEL_INCLUDE` overrides for a different
   quant. It verifies shard 1 exists (33/33 shards for the default
   AD-4.27bpw set) and writes `/etc/nathanw/llama-server.conf`
-  (`MODEL=` + `EXTRA_ARGS=` with `-md` MTP sidecar and `--mmproj`).
+  (`MODEL=` + `EXTRA_ARGS=` with `-md` MTP sidecar and `--mmproj`), keeping an
+  existing `PORT=` line so re-running it never resets a custom port.
 - Default weights (128 GB box): AtomicChat AD-4.27bpw `Q4_K_M-M64`,
   33 shards (~93 GiB), plus Unsloth **shared** MTP head
   (`mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf`, ~2.8 GB — v0.7.5 expects the
@@ -113,4 +121,8 @@ and restart — only if you actually want it reachable.
    `ggml_vulkan: 0 = …RADV STRIX_HALO` line (not CPU fallback). For a
    numbers comparison, stop the service and run `ujust nathanw-bench`
    (baseline: same `-p 512 -n 32 -d 0,32768` command before and after).
+   `nathanw-bench` runs `llama-bench` as the `nathanw` user (the weights are
+   mode `0750 nathanw:nathanw`, so an unprivileged run cannot open them) and
+   from that user's `$HOME` (ggml scans `$PWD` for backend `.so` files and
+   warns when it cannot stat it); do the same when benchmarking by hand.
 6. Update the pin + date in this file's "Source and version" section.

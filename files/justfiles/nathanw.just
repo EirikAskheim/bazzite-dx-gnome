@@ -3,10 +3,14 @@
 # pinned there). These recipes fetch weights into /var/lib/nathanw/models as
 # the nathanw service account, write /etc/nathanw/llama-server.conf, and manage
 # the nathanw-llama-server service. See docs/nathanw.md for the full picture.
+#
+# Note on `ujust --list`: just uses the LAST line of the comment block above a
+# recipe as its description, so the summary goes last in these blocks.
 
-# Download (or re-check) all weights, write the service config, and mark the
-# model tree ready. Resumable; safe to re-run. Env overrides:
-# NATHANW_MODEL_REPO, NATHANW_MODEL_INCLUDE, NATHANW_SKIP_DISK_CHECK=1.
+# Env overrides: NATHANW_MODEL_REPO, NATHANW_MODEL_INCLUDE,
+# NATHANW_SKIP_DISK_CHECK=1.
+#
+# Download or re-check all weights and write /etc/nathanw/llama-server.conf.
 nathanw-models-download:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -66,24 +70,31 @@ nathanw-models-download:
     fi
 
     # The unit reads this file (EnvironmentFile) over its baked-in defaults,
-    # so the model path stays in writable /etc across image updates.
+    # so the model path stays in writable /etc across image updates. Keep any
+    # host-specific PORT= line: rewriting the file from scratch used to reset a
+    # custom port silently to the unit default (8082). The `|| true` keeps
+    # `set -o pipefail` from aborting the recipe when grep finds no match.
+    PORT_LINE="$( { grep -h '^PORT=' /etc/nathanw/llama-server.conf 2>/dev/null || true; } | tail -n 1 )"
     sudo install -d -m 755 /etc/nathanw
-    printf 'MODEL=%s\nEXTRA_ARGS=-md %s --mmproj %s\n' \
-        "${TARGET_DIR}/${SHARD1}" \
-        "${TARGET_DIR}/${MTP_INCLUDE}" \
-        "${TARGET_DIR}/${MMPROJ_INCLUDE}" | \
-        sudo tee /etc/nathanw/llama-server.conf >/dev/null
+    {
+        printf 'MODEL=%s\n' "${TARGET_DIR}/${SHARD1}"
+        printf 'EXTRA_ARGS=-md %s --mmproj %s\n' \
+            "${TARGET_DIR}/${MTP_INCLUDE}" "${TARGET_DIR}/${MMPROJ_INCLUDE}"
+        if [ -n "${PORT_LINE}" ]; then
+            printf '%s\n' "${PORT_LINE}"
+        fi
+    } | sudo tee /etc/nathanw/llama-server.conf >/dev/null
     # Sentinel the service's ConditionPathExists gates on.
     sudo -u nathanw touch /var/lib/nathanw/.models-ready
     echo "Wrote /etc/nathanw/llama-server.conf and marked models ready."
 
-# One-shot setup after rebase: download weights, retire Ollama (both preloaded
-# at once exhaust GTT and die with vk::DeviceLostError), then enable and start
-# the service. The multi-GB download takes a long time; start it and walk away.
+# Setup after rebase: weights (slow), retire Ollama, enable + start service.
 nathanw-setup: nathanw-models-download
     #!/usr/bin/env bash
     set -euo pipefail
 
+    # Ollama and Nathanw preloaded at once exhaust GTT and die with
+    # vk::DeviceLostError, so only one of them may be enabled.
     echo "Disabling Ollama (Ollama + Nathanw preloaded together exhaust GTT)..."
     sudo systemctl disable --now ollama.service || true
     echo "Enabling nathanw-llama-server..."
@@ -97,19 +108,47 @@ nathanw-verify:
 
     # Port mirrors nathanw-run.sh / the unit default (8082); override with
     # PORT= in the environment (reads /etc/nathanw/llama-server.conf first).
-    PORT="${PORT:-$(grep -h '^PORT=' /etc/nathanw/llama-server.conf 2>/dev/null | tail -n 1 | cut -d= -f2-)}"
+    # The `|| true` is required: grep exits 1 when the conf has no PORT= line
+    # (the usual case), and under `set -o pipefail` that aborted this recipe
+    # inside $() before anything else could run.
+    PORT="${PORT:-$( { grep -h '^PORT=' /etc/nathanw/llama-server.conf 2>/dev/null || true; } | tail -n 1 | cut -d= -f2-)}"
     PORT="${PORT:-8082}"
     BASE="http://127.0.0.1:${PORT}"
-    systemctl is-active nathanw-llama-server.service
-    curl --fail -s "${BASE}/health"
-    echo
-    curl --fail -s "${BASE}/v1/chat/completions" \
-        -H 'Content-Type: application/json' \
-        -d '{"messages":[{"role":"user","content":"Say hello"}],"max_tokens":32}'
-    echo
 
-# Baseline benchmark for comparing releases after upgrades. Stop the service
-# first so the benchmark has the GPU to itself; see docs/nathanw.md.
+    if ! systemctl is-active --quiet nathanw-llama-server.service; then
+        echo "nathanw-llama-server is $(systemctl is-active nathanw-llama-server.service || true); see 'ujust nathanw-status'." >&2
+        exit 1
+    fi
+
+    echo "GET ${BASE}/health"
+    HEALTH="$(curl -s --max-time 60 "${BASE}/health" || true)"
+    echo "${HEALTH}"
+    case "${HEALTH}" in
+        *'"status":"ok"'*) ;;
+        *)
+            echo "API is not ready on port ${PORT} (still loading, or PORT= mismatch)." >&2
+            echo "Follow the load with 'ujust nathanw-logs'." >&2
+            exit 1
+            ;;
+    esac
+
+    echo "POST ${BASE}/v1/chat/completions (32 tokens)"
+    # The model is already resident, so this is a small prefill + decode.
+    RESP="$(curl -s --max-time 300 "${BASE}/v1/chat/completions" \
+        -H 'Content-Type: application/json' \
+        -d '{"messages":[{"role":"user","content":"Say hello"}],"max_tokens":32}' || true)"
+    if [ -z "${RESP}" ]; then
+        echo "No response from ${BASE}/v1/chat/completions." >&2
+        exit 1
+    fi
+    if command -v jq >/dev/null 2>&1; then
+        echo "${RESP}" | jq -r '.choices[0].message.content // .'
+    else
+        echo "${RESP}"
+    fi
+    echo "OK: nathanw-llama-server is serving on port ${PORT}."
+
+# Baseline benchmark (stop the service first; see docs/nathanw.md).
 nathanw-bench:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -121,23 +160,37 @@ nathanw-bench:
     fi
     [ -f /etc/nathanw/llama-server.conf ] && . /etc/nathanw/llama-server.conf
     : "${MODEL:?/etc/nathanw/llama-server.conf missing — run 'ujust nathanw-models-download' first.}"
-    /usr/bin/llama-bench-nathanw -m "${MODEL}" \
-        -ngl 99 --n-cpu-moe 0 -fa 1 -p 512 -n 32 -d 0,32768
+
+    # The weights live under /var/lib/nathanw (0750 nathanw:nathanw), so an
+    # unprivileged llama-bench run cannot even open them. Run as the service
+    # account, whose supplementary render/video groups are what expose the
+    # Vulkan device. cd "$HOME" first: ggml scans $PWD for backend .so files
+    # and spams posix_stat warnings when it cannot stat the caller's directory.
+    if ! sudo -u nathanw test -r "${MODEL}"; then
+        echo "Cannot read ${MODEL} as the nathanw user — run 'ujust nathanw-models-download' first." >&2
+        exit 1
+    fi
+    sudo -u nathanw -H sh -c 'cd "${HOME}" && exec /usr/bin/llama-bench-nathanw "$@"' sh \
+        -m "${MODEL}" -ngl 99 --n-cpu-moe 0 -fa 1 -p 512 -n 32 -d 0,32768
 
 # Follow the service log (model load, requests, errors).
 nathanw-logs:
     #!/usr/bin/env bash
     journalctl -u nathanw-llama-server.service -f
 
-# One-line service + API status.
+# Unit state, effective port, and /health (no model inference).
 nathanw-status:
     #!/usr/bin/env bash
     set -euo pipefail
 
     # Port mirrors nathanw-run.sh / the unit default (8082); override with
     # PORT= in the environment (reads /etc/nathanw/llama-server.conf first).
-    PORT="${PORT:-$(grep -h '^PORT=' /etc/nathanw/llama-server.conf 2>/dev/null | tail -n 1 | cut -d= -f2-)}"
+    # See nathanw-verify for why the `|| true` is needed here.
+    PORT="${PORT:-$( { grep -h '^PORT=' /etc/nathanw/llama-server.conf 2>/dev/null || true; } | tail -n 1 | cut -d= -f2-)}"
     PORT="${PORT:-8082}"
+
+    echo "API: http://127.0.0.1:${PORT}/v1 (override with PORT=... or PORT= in /etc/nathanw/llama-server.conf)"
     systemctl status nathanw-llama-server.service --no-pager || true
-    curl -s "http://127.0.0.1:${PORT}/health" || echo "API not responding."
+    echo "GET http://127.0.0.1:${PORT}/health"
+    curl -s --max-time 60 "http://127.0.0.1:${PORT}/health" || echo "API not responding on port ${PORT}."
     echo
