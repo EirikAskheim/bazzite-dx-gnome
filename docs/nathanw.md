@@ -121,8 +121,10 @@ and restart — only if you actually want it reachable.
    `ggml_vulkan: 0 = …RADV STRIX_HALO` line (not CPU fallback). For a
    numbers comparison, stop the service and run `ujust nathanw-bench`
    (baseline: same `-p 512 -n 32 -d 0,32768` command before and after).
-   `nathanw-bench` runs `llama-bench` as the `nathanw` user (the weights are
-   mode `0750 nathanw:nathanw`, so an unprivileged run cannot open them) and
-   from that user's `$HOME` (ggml scans `$PWD` for backend `.so` files and
-   warns when it cannot stat it); do the same when benchmarking by hand.
+   `nathanw-bench` parses (never sources) `/etc/nathanw/llama-server.conf`
+   for `MODEL=` plus the `-md`/`--mmproj` sidecars in `EXTRA_ARGS=` and runs
+   `llama-bench` as the `nathanw` user (the weights are mode
+   `0750 nathanw:nathanw`, so an unprivileged run cannot open them) from
+   that user's `$HOME` (ggml scans `$PWD` for backend `.so` files and warns
+   when it cannot stat it); do the same when benchmarking by hand.
 6. Update the pin + date in this file's "Source and version" section.

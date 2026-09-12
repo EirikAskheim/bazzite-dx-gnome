@@ -78,7 +78,10 @@ nathanw-models-download:
     sudo install -d -m 755 /etc/nathanw
     {
         printf 'MODEL=%s\n' "${TARGET_DIR}/${SHARD1}"
-        printf 'EXTRA_ARGS=-md %s --mmproj %s\n' \
+        # Quote the value: systemd EnvironmentFile strips the quotes, while a
+        # plain `source` of an unquoted `EXTRA_ARGS=-md <path> ...` line would
+        # try to EXECUTE <path> as a command ("Permission denied", exit 126).
+        printf 'EXTRA_ARGS="-md %s --mmproj %s"\n' \
             "${TARGET_DIR}/${MTP_INCLUDE}" "${TARGET_DIR}/${MMPROJ_INCLUDE}"
         if [ -n "${PORT_LINE}" ]; then
             printf '%s\n' "${PORT_LINE}"
@@ -158,8 +161,20 @@ nathanw-bench:
         echo "  sudo systemctl stop nathanw-llama-server.service" >&2
         exit 1
     fi
-    [ -f /etc/nathanw/llama-server.conf ] && . /etc/nathanw/llama-server.conf
-    : "${MODEL:?/etc/nathanw/llama-server.conf missing — run 'ujust nathanw-models-download' first.}"
+    # Parse, don't source: the conf's EXTRA_ARGS value contains spaces, and
+    # sourcing the old unquoted form (`EXTRA_ARGS=-md <path> ...`) makes bash
+    # try to EXECUTE <path> ("Permission denied", exit 126). grep+cut works
+    # for both the old unquoted and the current quoted form; systemd's
+    # EnvironmentFile accepts either. The `|| true` keeps `set -o pipefail`
+    # from aborting when a key is absent.
+    CONF=/etc/nathanw/llama-server.conf
+    strip_quotes() { sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'\$//"; }
+    MODEL="$( { grep -h '^MODEL=' "${CONF}" 2>/dev/null || true; } | tail -n 1 | cut -d= -f2- | strip_quotes )"
+    EXTRA_ARGS="$( { grep -h '^EXTRA_ARGS=' "${CONF}" 2>/dev/null || true; } | tail -n 1 | cut -d= -f2- | strip_quotes )"
+    if [ -z "${MODEL}" ]; then
+        echo "/etc/nathanw/llama-server.conf missing MODEL — run 'ujust nathanw-models-download' first." >&2
+        exit 1
+    fi
 
     # The weights live under /var/lib/nathanw (0750 nathanw:nathanw), so an
     # unprivileged llama-bench run cannot even open them. Run as the service
@@ -170,8 +185,10 @@ nathanw-bench:
         echo "Cannot read ${MODEL} as the nathanw user — run 'ujust nathanw-models-download' first." >&2
         exit 1
     fi
+    # shellcheck disable=SC2086 (EXTRA_ARGS is intentionally word-split: it
+    # carries `-md <draft> --mmproj <proj>`, mirroring the service flags.)
     sudo -u nathanw -H sh -c 'cd "${HOME}" && exec /usr/bin/llama-bench-nathanw "$@"' sh \
-        -m "${MODEL}" -ngl 99 --n-cpu-moe 0 -fa 1 -p 512 -n 32 -d 0,32768
+        -m "${MODEL}" ${EXTRA_ARGS} -ngl 99 --n-cpu-moe 0 -fa 1 -p 512 -n 32 -d 0,32768
 
 # Follow the service log (model load, requests, errors).
 nathanw-logs:
