@@ -113,10 +113,10 @@
   <p class="sub">ASUS ROG Flow Z13 (GZ302EA) · Ryzen AI MAX+ 395 · Bazzite 44 · Li-ion 70 Wh (design)</p>
   <div class="badges">
     <span class="badge">BAT0 · ACPI smart battery</span>
-    <span class="badge">baseline 62.83 / 70.0 Wh (89.7 %)</span>
+    <span class="badge">after cycle 1: 62.94 Wh (89.9 %)</span>
     <span class="badge">cycle count 0</span>
-    <span class="badge ok">charge limit: 100 % (lifted for calibration)</span>
-    <span class="badge warn">80 % boot-timer: disabled during calibration</span>
+    <span class="badge ok">charge limit: 60 % (daily default)</span>
+    <span class="badge ok">boot-timer: re-applies 60 %</span>
   </div>
 </header>
 
@@ -134,7 +134,7 @@
 <table>
   <tr><th style="width:260px">Action</th><th>Command / state</th></tr>
   <tr><td>Lift charge limit to 100 %</td><td><span class="inline">charge-limit 100</span> → <span class="inline">charge_control_end_threshold = 100</span> ✓</td></tr>
-  <tr><td>Disarm 80 % boot-timer</td><td><span class="inline">systemctl --user disable --now charge-limit-80.timer</span> ✓ (prevents a reboot mid-cycle from capping the charge)</td></tr>
+  <tr><td>Disarm the charge-limit boot-timer</td><td><span class="inline">systemctl --user disable --now charge-limit.timer</span> ✓ (prevents a reboot mid-cycle from re-capping the charge at the daily limit)</td></tr>
   <tr><td>Baseline logged</td><td><span class="inline">~/.cache/battery-calibration.log</span> — <span class="inline">ENERGY_FULL=62826000 µWh</span> (2026-09-05)</td></tr>
 </table>
 <p class="small muted">If you start this guide later (fresh boot), re-run the two preparation commands above first.</p>
@@ -181,7 +181,7 @@
     <h4>Recharge to 100 % uninterrupted</h4>
     <p>Plug in and let it complete to <span class="inline">Full</span>, then leave it plugged for a while longer.
     <b>Important:</b> if you reboot during this phase, re-run <span class="inline">charge-limit 100</span> after login —
-    the 80 % timer is disabled, but the EC limit persists at whatever it was last set to.</p>
+    the charge-limit timer is disabled, but the EC limit persists at whatever it was last set to.</p>
   </div>
 </div>
 <div class="step">
@@ -204,15 +204,15 @@ echo "2026-… (after cycle 1): $(grep ENERGY_FULL= /sys/class/power_supply/BAT0
 </table>
 
 <h2><span class="num">05</span> Restore normal operation</h2>
-<pre>charge-limit 80
-systemctl --user enable --now charge-limit-80.timer
-charge-limit                    # sanity check → "battery charge limit: 80%"</pre>
+<pre>charge-limit 60
+systemctl --user enable --now charge-limit.timer
+charge-limit                    # sanity check → "battery charge limit: 60%"</pre>
 <div class="goodbox">
   <h3>Expected normal behavior afterwards</h3>
   <p class="small" style="margin:0">
-    The 80 % limit and boot-timer resume protecting the battery on AC.
-    When you want a full charge (e.g. before a trip): <span class="inline">charge-limit 100</span> — the next boot's timer
-    automatically returns the limit to 80 %. The panel-refresh service (60 Hz on battery) is unrelated to charging and keeps working.
+    The <b>60 % daily limit</b> and boot-timer resume protecting the battery on AC.
+    When you want more range or a full charge (e.g. before a trip): <span class="inline">charge-limit 100</span> (or <span class="inline">80</span> for a middle ground) — the next boot's timer
+    automatically returns the limit to 60 %. The panel-refresh service (60 Hz on battery) is unrelated to charging and keeps working.
   </p>
 </div>
 
@@ -229,12 +229,44 @@ charge-limit                    # sanity check → "battery charge limit: 80%"</
 <h3>Troubleshooting</h3>
 <table class="small">
   <tr><th style="width:250px">Symptom</th><th>Fix</th></tr>
-  <tr><td>Charge stops at 80 % during calibration</td><td>EC limit was reset (e.g. after reboot) — run <span class="inline">charge-limit 100</span></td></tr>
+  <tr><td>Charge stops before 100 % during calibration</td><td>The daily EC limit re-engaged (e.g. after reboot) — lift it with <span class="inline">charge-limit 100</span></td></tr>
   <tr><td><span class="inline">ENERGY_FULL</span> doesn't move after cycle 1</td><td>Run one discharge after the full charge, then re-read; if still flat, do a second full cycle</td></tr>
   <tr><td>Capacity % jumps erratically mid-discharge</td><td>Normal during re-learning — let the cycle finish</td></tr>
   <tr><td>Cycle count still 0 after cycles</td><td>Normal on some ACPI ECs; capacity is the metric that matters</td></tr>
   <tr><td>Voltage stays high but % drops fast near the end</td><td>Classic gauge drift — exactly what this procedure fixes</td></tr>
 </table>
+
+<h2><span class="num">07</span> Cycle 1 results (2026-09-06) &amp; next steps</h2>
+<div class="card">
+  <table>
+    <tr><th style="width:230px">Metric</th><th>Before (2026-09-05)</th><th>After cycle 1 (2026-09-06)</th></tr>
+    <tr><td><span class="inline">ENERGY_FULL</span></td><td>62.826 Wh</td><td><b>62.938 Wh</b> (+0.11 Wh, +0.18 %)</td></tr>
+    <tr><td>% of design (70.003 Wh)</td><td>89.7 %</td><td>89.9 %</td></tr>
+    <tr><td>Cycle count</td><td>0</td><td>0</td></tr>
+    <tr><td>System state at check</td><td>—</td><td>100 %, <span class="inline">Full</span>, on AC</td></tr>
+  </table>
+</div>
+
+<div class="warnbox">
+  <h3>Interpretation</h3>
+  <p class="small" style="margin:0">
+    One complete cycle produced <b>no meaningful recovery</b> (+0.18 %). Two possibilities remain:
+  </p>
+  <ul class="small">
+    <li><b>The cycle wasn't effective for the gauge</b> — e.g. the discharge didn't reach deep enough, or the reading was taken before <span class="inline">ENERGY_FULL</span> refreshed on a subsequent discharge.</li>
+    <li><b>~63 Wh is this battery's real usable capacity</b> — ASUS design values often include reserve; many units land at 88–93 % of nominal. At 0 cycles, wear is not the explanation.</li>
+  </ul>
+</div>
+
+<h3>Next steps (optional — state restored: 60 % daily limit + timer active)</h3>
+<ol>
+  <li><b>Quick re-check:</b> unplug and discharge ~10 % — then re-read <span class="inline">grep ENERGY_FULL /sys/class/power_supply/BAT0/uevent</span> (the gauge sometimes only refreshes on discharge).</li>
+  <li><b>Or run one more full cycle</b> with the acceptance criterion from §04: if it doesn't reach <b>≥ 65 Wh</b> this time, accept ~63 Wh as the real capacity:</li>
+</ol>
+<pre>charge-limit 100
+discharge to auto-suspend → recharge to 100 % (see §01–03)
+grep ENERGY_FULL /sys/class/power_supply/BAT0/uevent   # accept if ≥ 65 Wh
+charge-limit 60</pre>
 
 <footer>
   Companion to the <a href="power-analysis.html">power analysis report</a> (same directory).<br>

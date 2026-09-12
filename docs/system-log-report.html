@@ -17,6 +17,8 @@
   </div>
 </header>
 
+<div class="note"><b>Amended 2026-09-06</b> — the <i>Battery threshold</i> finding below has been updated to the current state: the charge limit is now actively enforced at <b>60&nbsp;%</b> by user units <code>charge-limit.service</code>/<code>charge-limit.timer</code>. All other sections remain a point-in-time snapshot from the 19:29 / 19:34 sampling on 2026-09-05.</div>
+
 <section class="grid">
  <div class="metric"><strong style="color:var(--green)">Running</strong><span>systemd system state</span></div>
  <div class="metric"><strong>0</strong><span>failed system/user units</span></div>
@@ -75,9 +77,10 @@ done
 journalctl -k -b -o short-precise | grep -E 'USB disconnect|GET_CURRENT_CAM|Alt mode|DPCD|cannot set freq'</pre>
 <p>No permanent USB power workaround was added to the image because the physical isolation and temporary autosuspend tests should come first.</p></article>
 
-<article class="finding low"><span class="badge">LOW · stale/noisy configuration confirmed</span><h3>Battery threshold udev rules target unsupported attributes</h3>
-<p>udev again attempted to chmod three absent battery threshold names. This hardware exposes only <code>charge_control_end_threshold</code>; it is currently world-writable and reads 100. Contrary to the earlier sample, <code>charge-limit-80.service</code> is not present in this deployment, so no active service is enforcing 80%. The failed chmod for the existing attribute may be a transient race, because its final mode is nevertheless 0666.</p>
-<ul><li>Condition udev actions on attribute existence and avoid world-writable (<code>0666</code>) sysfs permissions where a narrower privileged mechanism can be used.</li><li>If an 80% limit is desired, restore a supported service/tool and verify the value after both boot and asusd startup; do not assume the current rules enforce it.</li></ul></article>
+<article class="finding low"><span class="badge">LOW · udev noise · finding updated 2026-09-06</span><h3>Battery threshold udev rules target unsupported attributes</h3>
+<p>udev still attempts to chmod three absent battery threshold names; this hardware exposes only <code>charge_control_end_threshold</code>, which remains world-writable (<code>0666</code>). The earlier snapshot read 100 with no enforcing unit; that has changed.</p>
+<p><b>Current state (2026-09-06):</b> the threshold reads <b>60</b> and is actively enforced by the user-level <code>charge-limit.service</code> + <code>charge-limit.timer</code> pair, which re-apply 60&nbsp;% ~1&nbsp;min after each boot/login (EC-backed, survives reboots). The previous <code>charge-limit-80.service</code> unit has been retired and replaced by a generic <code>charge-limit</code> CLI that accepts any whole percent 20–100, so one-off lifts (<span style="white-space:nowrap"><code>charge-limit 80</code> / <code>charge-limit 100</code></span>) are reverted to 60&nbsp;% automatically at the next boot.</p>
+<ul><li>The udev chmod noise is cosmetic — condition udev actions on attribute existence rather than relying on sysfs chmod semantics.</li><li>Verify after changes with <span style="white-space:nowrap"><code>cat /sys/class/power_supply/BAT0/charge_control_end_threshold</code></span> and <span style="white-space:nowrap"><code>systemctl --user is-active charge-limit.timer</code></span>; no other enforcement is needed.</li></ul></article>
 
 <article class="finding medium"><span class="badge">MEDIUM · new base-image script regression</span><h3>Bazzite per-user setup script has a shell syntax error</h3>
 <p><code>bazzite-user-setup.service</code> exited with status 2 on the fresh boot. The installed <code>/usr/libexec/bazzite-user-setup</code> contains an empty Kinoite branch followed by <code>else</code> around line 201, which is invalid Bash syntax. The unit later appears inactive rather than in <code>systemctl --user --failed</code>, but its log clearly records <code>syntax error near unexpected token 'else'</code>. Tasks after that point in Bazzite’s first-login/user setup script are skipped. The separate <code>ublue-user-setup.service</code> completed successfully.</p>

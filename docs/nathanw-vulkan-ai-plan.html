@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nathanw Vulkan AI Plan — Bazzite Strix Halo (Qwen3.8-Flash-Next)</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#171e26; --panel2:#1c2530; --border:#2a3644;
+    --text:#d7e0ea; --muted:#8b9aa9; --accent:#4cc2ff;
+    --green:#57d9a3; --yellow:#ffd166; --red:#ff6b6b; --purple:#c792ea;
+    --mono:"JetBrains Mono","Fira Code",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.6}
+  .wrap{max-width:1020px;margin:0 auto;padding:32px 20px 80px}
+  header.hero{border:1px solid var(--border);border-radius:14px;
+    background:linear-gradient(160deg,#14202b 0%,var(--panel) 60%);padding:28px 30px;margin-bottom:22px}
+  header.hero h1{margin:0 0 4px;font-size:1.5rem}
+  header.hero .sub{color:var(--muted);margin:0 0 12px}
+  .badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .badge{font-size:.78rem;padding:3px 10px;border-radius:999px;border:1px solid var(--border);
+    background:var(--panel2);color:var(--muted);font-family:var(--mono)}
+  .badge.ok{color:var(--green);border-color:rgba(87,217,163,.4)}
+  .badge.warn{color:var(--yellow);border-color:rgba(255,209,102,.4)}
+  .badge.info{color:var(--accent);border-color:rgba(76,194,255,.4)}
+  h2{font-size:1.15rem;margin:34px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;gap:10px}
+  h2 .num{background:var(--accent);color:#062033;border-radius:6px;font-size:.85rem;padding:1px 9px;font-weight:700}
+  h3{font-size:1rem;margin:20px 0 8px;color:var(--accent)}
+  table{width:100%;border-collapse:collapse;font-size:.9rem;margin:10px 0}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{color:var(--muted);font-weight:600;background:rgba(255,255,255,.02)}
+  code{font-family:var(--mono);font-size:.85em;background:rgba(148,163,184,.14);padding:2px 6px;border-radius:5px}
+  pre{background:#0b1117;border:1px solid var(--border);border-radius:10px;padding:14px;overflow:auto;
+    font-size:.82rem;line-height:1.5}
+  pre code{background:none;padding:0}
+  .card{border:1px solid var(--border);background:var(--panel);border-radius:12px;padding:16px 18px;margin:12px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .callout{border-radius:12px;padding:14px 16px;margin:14px 0;border:1px solid}
+  .callout.green{background:rgba(87,217,163,.08);border-color:rgba(87,217,163,.35)}
+  .callout.yellow{background:rgba(255,209,102,.07);border-color:rgba(255,209,102,.35)}
+  .callout.blue{background:rgba(76,194,255,.07);border-color:rgba(76,194,255,.35)}
+  .callout.red{background:rgba(255,107,107,.07);border-color:rgba(255,107,107,.35)}
+  ul{margin:8px 0;padding-left:22px}
+  li{margin:4px 0}
+  .foot{color:var(--muted);font-size:.82rem;margin-top:36px;border-top:1px solid var(--border);padding-top:14px}
+  a{color:var(--accent)}
+  .toc a{text-decoration:none}
+  .kpi{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+  .kpi div{flex:1;min-width:150px;background:var(--panel2);border:1px solid var(--border);
+    border-radius:10px;padding:10px 12px}
+  .kpi b{font-size:1.15rem;display:block}
+  .kpi span{color:var(--muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header class="hero">
+  <h1>Nathanw Vulkan AI — implementation plan for this Bazzite image</h1>
+  <p class="sub">Target: Qwen3.8-Flash-Next (125B MoE, 6B active) via <b>Nathanw v0.7.5 Vulkan</b> + llama-swap + LiteLLM on Strix Halo (ASUS ROG Flow Z13 GZ302EA, ~128&nbsp;GB unified). Source: <a href="https://sleepingrobots.com/dreams/halogen-vs-nathanw-qwen38-flash-next-strix-halo/">Sleeping Robots “production configuration”</a> (2026-09-11).</p>
+  <div class="badges">
+    <span class="badge ok">KEEP: Nathanw v0.7.5</span>
+    <span class="badge warn">REJECT for agents: Halogen 0.5.8</span>
+    <span class="badge info">Backend: Vulkan / RADV</span>
+    <span class="badge info">Ctx: 262144 · KV q8_0</span>
+    <span class="badge">Image base: ghcr.io/ublue-os/bazzite-dx-gnome</span>
+  </div>
+  <div class="kpi">
+    <div><b>47 tok/s</b><span>warm decode @ 55k agentic (benchmark)</span></div>
+    <div><b>26–30 tok/s</b><span>live agent traffic @ 50k+</span></div>
+    <div><b>362 tok/s</b><span>cold prefill @ 55k (first fill)</span></div>
+    <div><b>119 tok/s</b><span>55k code “MTP jackpot” band</span></div>
+  </div>
+</header>
+
+<div class="card toc">
+  <b>Contents</b>
+  <ol>
+    <li><a href="#verdict">Verdict: why Nathanw, not Halogen</a></li>
+    <li><a href="#inventory">Software inventory — what goes where</a></li>
+    <li><a href="#bazzite">How it maps onto this Bazzite repo</a></li>
+    <li><a href="#phases">Implementation phases</a></li>
+    <li><a href="#runtime">Runtime wiring (server command, swap, LiteLLM)</a></li>
+    <li><a href="#storage">Storage, memory &amp; kernel notes</a></li>
+    <li><a href="#verify">Verification checklist</a></li>
+    <li><a href="#risks">Risks / non-goals</a></li>
+  </ol>
+</div>
+
+<h2><span class="num">1</span><span id="verdict">Verdict: why Nathanw, not Halogen</span></h2>
+<p>The source post A/B-tested both stacks on the same 128&nbsp;GB Strix Halo box (8k / 32k / 55k bands × agentic/code, thinking on, 3 repeats). Halogen wins <b>cold prefill</b> (~758 vs ~362 tok/s @ 55k agentic), but Nathanw wins the metric agents actually live on — <b>warm decode at depth</b> (47 vs 39 tok/s @ 55k agentic; 119 vs 35 tok/s @ 55k code via MTP speculative decoding). Halogen is also operationally exclusive: own <code>.hgn</code> weight tree (~121&nbsp;GiB), owns the GPU, no concurrent embedding models, ~7&nbsp;min cold load, SSE streaming wedged at 32k+.</p>
+<div class="callout green"><b>Decision for this repo:</b> implement the <b>Nathanw production configuration</b>. Do not adopt Halogen except as a future optional batch-ingest path on a dedicated box.</div>
+
+<h2><span class="num">2</span><span id="inventory">Software inventory — what goes where</span></h2>
+<p>Nothing in this stack belongs baked into <code>/usr</code> as multi-GB weights. Binaries can be baked; weights and state must live in writable persistent storage.</p>
+<table>
+  <tr><th>Component</th><th>Version / source</th><th>Install location (Bazzite)</th><th>Size</th></tr>
+  <tr><td><b>llama-server (Nathanw)</b></td><td>v0.7.5 <code>strix-halo-llamacpp-vulkan-portable.tar.gz</code> from <code>Nathanw1014/strix-halo-llamacpp</code> (watch <code>halo-box/strix-llama.cpp</code> for successor)</td><td>Phase 1 (recommended): <code>~/.local/share/nathanw/v0.7.5/llama-server</code> or <code>/var/lib/nathanw/v0.7.5/</code>. Phase 2 (optional bake): <code>/usr/lib/nathanw/</code> via <code>recipes/recipe.yml</code> script module</td><td>~hundreds MB (portable, bundles Mesa)</td></tr>
+  <tr><td><b>Main model GGUF</b></td><td><code>AtomicChat/Qwen3.8-Flash-Next-GGUF</code> AD-4.27bpw <code>Q4_K_M-M64</code>, 33 shards; <code>-m</code> points at <code>…-00001-of-00033.gguf</code></td><td><code>/var/lib/nathanw/models/…</code> or <code>~/Secondary/Models/Qwen3.8-Flash-Next/</code> (author layout). <b>Never in image.</b></td><td>~93&nbsp;GiB</td></tr>
+  <tr><td><b>MTP draft sidecar</b></td><td><code>unsloth/Qwen3.8-Flash-Next-GGUF</code> → <code>MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf</code> (shared heads, replaces 4.14&nbsp;GB self-contained)</td><td>Same models dir, referenced with <code>-md</code></td><td>~2.6–2.8&nbsp;GB</td></tr>
+  <tr><td><b>Vision projector</b></td><td><code>mmproj-Qwen3.8-Flash-Next-F16.gguf</code> from AtomicChat repo</td><td>Same models dir, referenced with <code>--mmproj</code></td><td>~1&nbsp;GB</td></tr>
+  <tr><td><b>Chat template</b></td><td><code>froggeric/Qwen-Fixed-Chat-Templates</code> v22+</td><td><code>~/.config/llama-swap/templates/chat_template.jinja</code> (author: <code>~/llama-swap/templates/</code>)</td><td>KB</td></tr>
+  <tr><td><b>llama-swap</b></td><td>Upstream <code>mostlygeek/llama-swap</code> (Go binary)</td><td>Phase 1: <code>~/.local/bin/llama-swap</code> + user systemd unit. Phase 2: <code>/usr/bin/llama-swap</code> + system unit + sysusers/tmpfiles</td><td>MB</td></tr>
+  <tr><td><b>LiteLLM proxy</b></td><td><code>BerriAI/litellm</code> Docker (port 4000)</td><td>User Docker Compose project (<code>~/docker/litellm/</code>); routes <code>local/* → :8080</code>, <code>npu/* → :8002</code></td><td>image pull</td></tr>
+  <tr><td><b>Download tooling</b></td><td><code>uv</code> (already in image), <code>huggingface_hub</code> / <code>hf_transfer</code></td><td>Image already ships <code>uv</code>; fetch via <code>ujust</code> recipe at runtime</td><td>—</td></tr>
+  <tr><td><b>GPU access (already in image)</b></td><td><code>amdgpu_llm_optimized.conf</code>, <code>99-amd-kfd.rules</code>, <code>ujust llm-gpu-setup</code></td><td><code>/etc/modprobe.d/</code>, <code>/etc/udev/rules.d/</code>, <code>files/justfiles/llm-gpu.just</code> — no change needed</td><td>—</td></tr>
+</table>
+<div class="callout blue"><b>Bazzite rule of thumb:</b> binaries &amp; unit files → <code>files/system/</code> + <code>recipes/recipe.yml</code>; per-user downloads, weights, slot saves → <code>/var/lib/…</code> or <code>$HOME</code> via <code>ujust</code>; never commit credentials, never bake GGUFs.</div>
+
+<h2><span class="num">3</span><span id="bazzite">How it maps onto this Bazzite repo</span></h2>
+<div class="grid2">
+<div class="card"><b>Already present — reuse as-is</b><ul>
+  <li><code>files/system/etc/modprobe.d/amdgpu_llm_optimized.conf</code> (<code>gttsize</code>, <code>ttm pages_limit/pool</code>)</li>
+  <li><code>files/system/etc/udev/rules.d/99-amd-kfd.rules</code> (kfd/drm → <code>render</code>)</li>
+  <li><code>files/justfiles/llm-gpu.just</code> → <code>ujust llm-gpu-setup</code> (groups, dracut, udev)</li>
+  <li><code>uv</code>, ROCm/Vulkan userspace via Bazzite base + <code>ollama.service</code> env pattern (<code>AMD_VULKAN_ICD=RADV</code>, <code>VK_ICD_FILENAMES=…radeon_icd…</code>)</li>
+</ul></div>
+<div class="card"><b>New — proposed repo additions</b><ul>
+  <li><code>files/justfiles/nathanw.just</code> — <code>nathanw-install</code>, <code>nathanw-models-download</code>, <code>nathanw-run</code>, <code>nathanw-verify</code></li>
+  <li><code>files/system/usr/lib/systemd/user/llama-swap.service</code> (preferred: user scope so it sees <code>$HOME</code> models + <code>/dev/dri</code> via <code>render</code> group)</li>
+  <li>Optional bake: <code>files/system/usr/lib/sysusers.d/nathanw.conf</code> + <code>tmpfiles.d/nathanw.conf</code> + <code>system/nathanw-llama-swap.service</code> + preset, mirroring <code>ollama.conf</code>/<code>openviking.conf</code></li>
+  <li><code>docs/nathanw-vulkan-ai-plan.html</code> (this file)</li>
+</ul></div>
+</div>
+<div class="callout yellow"><b>Scope choice:</b> run llama-swap as a <b>systemd user service</b> (like the author), not a system service. A system user (<code>ollama</code>-style) would need the ~96&nbsp;GiB model tree readable under <code>/var/lib</code> and GPU group membership; that is Phase&nbsp;2 if boot-time preload is ever wanted. Phase&nbsp;1 needs <b>zero image rebuild</b> — only a new justfile + user units.</div>
+
+<h2><span class="num">4</span><span id="phases">Implementation phases</span></h2>
+<h3>Phase 0 — prerequisites (today, no code)</h3>
+<ul><li>Confirm Strix Halo + ≥96&nbsp;GiB free for weights (this machine reports ~111&nbsp;GiB available — fits, but tight alongside Ollama models).</li><li>Run <code>ujust llm-gpu-setup; systemctl reboot</code> if not already done. Keep <code>amd_iommu=pt</code> (NPU requirement); do <b>not</b> switch to <code>off</code> for Halogen-style prefill gains.</li><li><code>systemctl stop ollama</code> before large-model runs — the 125B MoE + 51B n-gram table wants the host mostly to itself.</li></ul>
+<h3>Phase 1 — user-space install (recommended; no rebuild)</h3>
+<ul><li>Add <code>files/justfiles/nathanw.just</code>: download + verify Nathanw portable tarball (pin v0.7.5, checksum), <code>hf download</code> the 3 model files, install <code>llama-swap</code> binary, write <code>~/llama-swap/llama-swap.config.yaml</code> + template, install user systemd unit, <code>systemctl --user enable --now llama-swap</code>.</li><li>Add LiteLLM compose entry mapping <code>local/Qwen3.8-Flash-Next → openai/qwen38-flash-next</code> at <code>http://host.docker.internal:8080/v1</code>.</li><li>Validate with the <a href="#verify">verification checklist</a>.</li></ul>
+<h3>Phase 2 — optional image bake (later)</h3>
+<ul><li>Only if Phase&nbsp;1 proves stable: add a <code>recipes/recipe.yml</code> script step extracting the portable tarball to <code>/usr/lib/nathanw/</code> + symlink <code>/usr/bin/llama-server-nathanw</code>, ship <code>llama-swap</code> binary, add sysusers/tmpfiles/preset exactly like <code>ollama</code>/<code>openviking</code>. Weights still stay out of the image.</li><li>Consider an <code>amdgpu-perf-high</code>-equivalent (force <code>power_dpm_force_performance_level=high</code>) only after measuring a 600&nbsp;MHz stuck-clock symptom; the infra post cites 27→33 tok/s class effects.</li></ul>
+
+<h2><span class="num">5</span><span id="runtime">Runtime wiring</span></h2>
+<h3>5.1 Standalone llama-server (author's production command, Bazzite paths)</h3>
+<pre><code>NATHANW=~/.local/share/nathanw/v0.7.5/llama-server
+MODELS=/var/lib/nathanw/models/Qwen3.8-Flash-Next
+SWAP=~/.config/llama-swap
+
+"$NATHANW" \
+  --host 127.0.0.1 --port 8080 \
+  -m "$MODELS/AD-4.27bpw/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64-00001-of-00033.gguf" \
+  -md "$MODELS/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf" \
+  --mmproj "$MODELS/mmproj-Qwen3.8-Flash-Next-F16.gguf" \
+  --image-min-tokens 1024 \
+  -fa on -ngl 999 -b 8192 -ub 2048 -t 4 -fit off \
+  --ctx-size 262144 \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --cache-reuse 1 \
+  --spec-type draft-mtp,ngram-mod --spec-draft-n-max 6 --spec-draft-p-min 0.75 \
+  --load-mode mmap --no-host --no-repack --tensor-read-lazy on \
+  -ot per_layer_token_embd.weight=CPU --n-cpu-moe 0 --parallel 1 \
+  --slot-save-path "$SWAP/slots" \
+  --jinja --chat-template-file "$SWAP/templates/chat_template.jinja" \
+  --reasoning-format deepseek --reasoning-budget 8192 \
+  --reasoning-budget-message "Let me provide my answer now." \
+  --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0 \
+  --presence-penalty 0.0 --repeat-penalty 1.0 \
+  --chat-template-kwargs '{"preserve_thinking":true}'</code></pre>
+<div class="callout red"><b>Mandatory, non-obvious flags:</b> <code>-fit off</code> + <code>--load-mode mmap</code> + <code>--tensor-read-lazy on</code> (Flash Next's 51B n-gram table <b>requires</b> mmap — never <code>--no-mmap</code> here, unlike generic Strix Halo tuning). Sampling must stay at Qwen official thinking-mode values (<code>temp 1.0 / top-p 0.95 / top-k 20</code>).</div>
+<h3>5.2 llama-swap entry (wraps the above)</h3>
+<pre><code># ~/.config/llama-swap/llama-swap.config.yaml (excerpt)
+macros:
+  nathanw: "$HOME/.local/share/nathanw/v0.7.5/llama-server"
+  models_dir: "/var/lib/nathanw/models/Qwen3.8-Flash-Next"
+  swap_dir: "$HOME/.config/llama-swap"
+models:
+  "qwen38-flash-next":
+    cmd: &gt;
+      ${nathanw} --host 127.0.0.1 --port ${PORT}
+      -m ${models_dir}/AD-4.27bpw/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64-00001-of-00033.gguf
+      -md ${models_dir}/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf
+      --mmproj ${models_dir}/mmproj-Qwen3.8-Flash-Next-F16.gguf
+      --image-min-tokens 1024 -fa on -ngl 999 -b 8192 -ub 2048 -t 4 -fit off
+      --ctx-size 262144 --cache-type-k q8_0 --cache-type-v q8_0 --cache-reuse 1
+      --spec-type draft-mtp,ngram-mod --spec-draft-n-max 6 --spec-draft-p-min 0.75
+      --load-mode mmap --no-host --no-repack --tensor-read-lazy on
+      -ot per_layer_token_embd.weight=CPU --n-cpu-moe 0 --parallel 1
+      --slot-save-path ${swap_dir}/slots --jinja
+      --chat-template-file ${swap_dir}/templates/chat_template.jinja
+      --reasoning-format deepseek --reasoning-budget 8192
+      --reasoning-budget-message "Let me provide my answer now."
+      --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0.0
+      --presence-penalty 0.0 --repeat-penalty 1.0
+      --chat-template-kwargs '{"preserve_thinking":true}'
+    aliases: ["openai/qwen38-flash-next", "local/Qwen3.8-Flash-Next"]</code></pre>
+<h3>5.3 LiteLLM route</h3>
+<pre><code># ~/docker/litellm/litellm_config.yaml (add)
+- model_name: local/Qwen3.8-Flash-Next
+  litellm_params:
+    model: openai/qwen38-flash-next
+    api_base: http://host.docker.internal:8080/v1
+    api_key: "dummy"</code></pre>
+<p>After editing LiteLLM config (with <code>store_model_in_db: true</code>) a plain restart is <b>not</b> enough: <code>cd ~/docker/litellm &amp;&amp; docker compose down litellm &amp;&amp; docker compose up -d litellm</code>.</p>
+<h3>5.4 Environment (mirror <code>ollama.service</code>)</h3>
+<pre><code>AMD_VULKAN_ICD=RADV
+VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/radeon_icd.x86_64.json
+HIP_VISIBLE_DEVICES=-1</code></pre>
+
+<h2><span class="num">6</span><span id="storage">Storage, memory &amp; kernel notes</span></h2>
+<ul>
+  <li><b>Disk:</b> ~97&nbsp;GiB total (93 + 2.6 + ~1). Ensure the target filesystem has ≥120&nbsp;GiB free. Exclude the model tree from restic (<code>/etc/restic/excludes</code> pattern) — weights are re-downloadable.</li>
+  <li><b>RAM:</b> unified 128&nbsp;GB; author sees ~44&nbsp;GiB MemAvailable with Nathanw resident vs ~72&nbsp;GiB accounting under Halogen — same box, different accounting. Stop <code>ollama</code>/embeddings before benchmarking.</li>
+  <li><b>Kernel:</b> keep <code>amd_iommu=pt</code>. <code>off</code> buys ~13–16% Halogen prefill but breaks NPU. Check with <code>cat /proc/cmdline</code>.</li>
+  <li><b>Slot saves:</b> v0.7.4 slot files do <b>not</b> restore into v0.7.5 (indexer V shape changed) — expect one re-prefill, then fine.</li>
+  <li><b>Future fix to watch:</b> <code>ggml-org/llama.cpp#28136</code> (lazy PLE direct reads, 2–3× prefill on diverse prompts) — the path to Halogen-like first-fill without leaving llama-swap.</li>
+</ul>
+
+<h2><span class="num">7</span><span id="verify">Verification checklist</span></h2>
+<pre><code># 1. GPU access
+id -nG $USER | tr ' ' '\n' | grep -E '^(render|video)$'
+ls -l /dev/dri/renderD128 /dev/kfd
+
+# 2. Binary + models
+~/.local/share/nathanw/v0.7.5/llama-server --version
+ls -lh /var/lib/nathanw/models/Qwen3.8-Flash-Next/ | head
+
+# 3. Standalone smoke test (small ctx first, then full 262144)
+curl -s http://127.0.0.1:8080/v1/chat/completions -H 'Content-Type: application/json' \
+  -d '{"model":"qwen38-flash-next","messages":[{"role":"user","content":"Say hello"}],"max_tokens":32}'
+
+# 4. Via swap + LiteLLM
+systemctl --user status llama-swap --no-pager
+curl -s http://localhost:4000/v1/chat/completions -H 'Content-Type: application/json' \
+  -d '{"model":"local/Qwen3.8-Flash-Next","messages":[{"role":"user","content":"Say hello"}],"max_tokens":32}'
+
+# 5. A/B at YOUR depth: repeat the 8k/32k/55k × agentic/code matrix, compare
+#    warm decode (turn 2+) vs cold prefill (turn 1) — do not trust README tables.</code></pre>
+
+<h2><span class="num">8</span><span id="risks">Risks / non-goals</span></h2>
+<table>
+  <tr><th>Risk</th><th>Mitigation</th></tr>
+  <tr><td>Ollama + Nathanw contend for unified memory</td><td>Document <code>systemctl stop ollama</code> in the just recipe; never enable both preloads.</td></tr>
+  <tr><td>Image bloat if weights baked in</td><td>Hard rule: weights only under <code>/var/lib</code> or <code>$HOME</code>; CI builds stay lean.</td></tr>
+  <tr><td>Upstream moves to <code>halo-box/strix-llama.cpp</code></td><td>Pin v0.7.5 by URL+checksum in the justfile; add a <code>nathanw-upgrade</code> stub that only flips the pin after local A/B.</td></tr>
+  <tr><td>Halogen hype / wrong baseline</td><td>Non-goal: no <code>.hgn</code> tree, no port 8731 container, no <code>amd_iommu=off</code> in this plan.</td></tr>
+  <tr><td>Slot-save incompatibility v0.7.4→v0.7.5</td><td>Wipe <code>$SWAP/slots</code> on upgrade; one re-prefill is expected.</td></tr>
+</table>
+
+<div class="callout blue"><b>Suggested next commit:</b> add <code>files/justfiles/nathanw.just</code> (Phase&nbsp;1 recipes) + this doc. No <code>recipes/recipe.yml</code> change needed until Phase&nbsp;2. Say the word and I will scaffold the justfile + user unit + swap/LiteLLM configs.</div>
+
+<div class="foot">Plan generated 2026-09-12 · Sources: Sleeping Robots halogen-vs-nathanw production config + local-llm-infrastructure; Nathanw v0.7.5 release notes; this repo's <code>recipes/recipe.yml</code>, <code>files/system</code>, <code>files/justfiles/llm-gpu.just</code>, <code>ollama.service</code>. Model URLs: AtomicChat GGUF, Unsloth shared MTP, froggeric templates (see §2).</div>
+
+</main>
+</body>
+</html>

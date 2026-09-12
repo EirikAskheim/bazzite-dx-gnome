@@ -141,7 +141,7 @@
   <tr><td>CPU</td><td>AMD Ryzen AI MAX+ 395 · 16 cores / 32 threads · boost to 5.19 GHz</td></tr>
   <tr><td>GPU</td><td>AMD Radeon 8060S (Strix Halo iGPU, <span class="inline">amdgpu</span>, no dGPU present)</td></tr>
   <tr><td>Memory</td><td>128 GiB LPDDR5X unified · GTT carve-out <span class="inline">amdgpu.gttsize=131072</span></td></tr>
-  <tr><td>Battery</td><td>70 Wh design · 63.4 Wh full · 0 cycles · <span class="inline">POWER_NOW ≈ 12 W</span> at idle</td></tr>
+  <tr><td>Battery</td><td>70 Wh design · 62.9 Wh full (~90 %, 0 cycles) · <span class="inline">POWER_NOW ≈ 12 W</span> at idle</td></tr>
   <tr><td>Power mgmt stack</td><td><span class="inline">tuned</span> + <span class="inline">tuned-ppd</span> (no TLP / power-profiles-daemon — correct per image)</td></tr>
   <tr><td>CPU governor / EPP</td><td><span class="inline">powersave</span> (amd-pstate-epp active) · EPP <span class="inline">power</span></td></tr>
   <tr><td>ASUS EC profile</td><td><span class="inline">platform_profile = quiet</span> (Silent) · throttle policy 2</td></tr>
@@ -227,8 +227,8 @@ sudo systemctl restart tuned-ppd</pre>
 <div class="issue">
   <h4>6. Battery state notes <span class="tag impact-low">LOW</span> <span class="tag stat-done">STATUS: done ✓</span></h4>
   <ul>
-    <li>Full capacity reads <b>63.4 / 70 Wh at 0 cycles</b> (2026-09-05: 62.8 Wh) — likely recalibration-needed or never fully cycled.</li>
-    <li><b>Charge limit set to 80 %</b>; <span class="inline">~/.local/bin/charge-limit</span> (usage: <span class="inline">charge-limit 80|100</span>) and the user timer <span class="inline">charge-limit-80.timer</span> re-apply 80 % shortly after every boot. Run <span class="inline">charge-limit 100</span> before a trip for a full charge.</li>
+    <li>Full capacity: <b>62.94 / 70.0 Wh (89.9 %) at 0 cycles</b>. One full calibration cycle (see <span class="inline">docs/battery-calibration.html</span>) moved it only +0.18 % → this is likely the battery's <b>real usable capacity</b> (design value includes manufacturer reserve); no further cycles recommended unless a deep 10 % discharge re-check shows movement.</li>
+    <li><b>Charge limit: 60 % daily default</b>; <span class="inline">~/.local/bin/charge-limit</span> accepts any whole percent 20–100 (<span class="inline">charge-limit</span> → 60, <span class="inline">charge-limit 100</span> → full). The user timer <span class="inline">charge-limit.timer</span> re-applies 60 % ~1 min after every boot, undoing one-off lifts automatically.</li>
   </ul>
 </div>
 
@@ -309,7 +309,7 @@ sudo systemctl restart tuned-ppd</pre>
   <tr><td>3 · GPU memory clocks</td><td><b style="color:var(--green)">✓ verified</b> — MCLK 400 MHz / SCLK 704 MHz at idle, SoC avg 7.8 W @ 10 % GPU load</td></tr>
   <tr><td>4 · thermald inactive</td><td><b style="color:var(--muted)">⏳ open</b> — service still inactive; fix or mask deliberately</td></tr>
   <tr><td>5 · BIOS</td><td><b style="color:var(--green)">✓ done</b> — 311 → <span class="inline">GZ302EA.314</span> (2026-07-20), flashed via EZ Flash 3, verified</td></tr>
-  <tr><td>6 · Charge limit</td><td><b style="color:var(--green)">✓ done</b> — 80 % active + <span class="inline">charge-limit</span> script &amp; boot timer (fires 1 min after login)</td></tr>
+  <tr><td>6 · Charge limit</td><td><b style="color:var(--green)">✓ done</b> — <b>60 % daily default</b> via <span class="inline">charge-limit</span> script &amp; boot timer (any 20–100 %; timer re-applies 60 % at boot)</td></tr>
 </table>
 
 <h3>Measured on battery (2026-09-05)</h3>
