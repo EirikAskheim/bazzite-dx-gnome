@@ -23,6 +23,10 @@ Environment=HOME=/var/lib/nathanw
 # so model switches survive image updates.
 Environment=MODEL=/var/lib/nathanw/models/Qwen3.8-Flash-Next/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64-00001-of-00033.gguf
 Environment=EXTRA_ARGS=
+# 8082, not 8080: signal-cli's user daemon and Steam's CEF debug forward
+# already claim 8080 on this box. Override per-host via PORT= in
+# /etc/nathanw/llama-server.conf.
+Environment=PORT=8082
 EnvironmentFile=-/etc/nathanw/llama-server.conf
 # Do NOT set VK_ICD_FILENAMES, VK_DRIVER_FILES, or LD_LIBRARY_PATH here.
 # The _run wrapper behind /usr/lib/nathanw/vulkan/llama-server pins all of

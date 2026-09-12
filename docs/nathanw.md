@@ -2,9 +2,9 @@
 
 Native `llama-server` from the upstream performance fork
 [Nathanw1014/strix-halo-llamacpp](https://github.com/Nathanw1014/strix-halo-llamacpp),
-running as the `nathanw-llama-server` system service on port 8080.
+running as the `nathanw-llama-server` system service on port 8082.
 No containers, no model router — clients talk OpenAI-compatible HTTP
-directly to `http://127.0.0.1:8080/v1`.
+directly to `http://127.0.0.1:8082/v1`.
 
 ## Source and version
 
@@ -75,14 +75,17 @@ Notes:
 ## Day-to-day use
 
 ```bash
-ujust nathanw-status    # unit state + /health
+ujust nathanw-status    # unit state + /health (port 8082 by default)
 ujust nathanw-logs      # follow logs
-curl -s http://127.0.0.1:8080/v1/chat/completions \
+curl -s http://127.0.0.1:8082/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{"messages":[{"role":"user","content":"Say hello"}],"max_tokens":32}'
 ```
 
-The service binds `127.0.0.1:8080` (local-only). For LAN access, add
+The service binds `127.0.0.1:8082` (local-only; 8080 is already taken by
+signal-cli and Steam's CEF debug forward on this box — override with
+`PORT=` in `/etc/nathanw/llama-server.conf` if you need another port).
+For LAN access, add
 `--host 0.0.0.0` via `EXTRA_ARGS` in `/etc/nathanw/llama-server.conf`
 and restart — only if you actually want it reachable.
 

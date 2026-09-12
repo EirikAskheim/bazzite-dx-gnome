@@ -95,10 +95,15 @@ nathanw-verify:
     #!/usr/bin/env bash
     set -euo pipefail
 
+    # Port mirrors nathanw-run.sh / the unit default (8082); override with
+    # PORT= in the environment (reads /etc/nathanw/llama-server.conf first).
+    PORT="${PORT:-$(grep -h '^PORT=' /etc/nathanw/llama-server.conf 2>/dev/null | tail -n 1 | cut -d= -f2-)}"
+    PORT="${PORT:-8082}"
+    BASE="http://127.0.0.1:${PORT}"
     systemctl is-active nathanw-llama-server.service
-    curl --fail -s http://127.0.0.1:8080/health
+    curl --fail -s "${BASE}/health"
     echo
-    curl --fail -s http://127.0.0.1:8080/v1/chat/completions \
+    curl --fail -s "${BASE}/v1/chat/completions" \
         -H 'Content-Type: application/json' \
         -d '{"messages":[{"role":"user","content":"Say hello"}],"max_tokens":32}'
     echo
@@ -129,6 +134,10 @@ nathanw-status:
     #!/usr/bin/env bash
     set -euo pipefail
 
+    # Port mirrors nathanw-run.sh / the unit default (8082); override with
+    # PORT= in the environment (reads /etc/nathanw/llama-server.conf first).
+    PORT="${PORT:-$(grep -h '^PORT=' /etc/nathanw/llama-server.conf 2>/dev/null | tail -n 1 | cut -d= -f2-)}"
+    PORT="${PORT:-8082}"
     systemctl status nathanw-llama-server.service --no-pager || true
-    curl -s http://127.0.0.1:8080/health || echo "API not responding."
+    curl -s "http://127.0.0.1:${PORT}/health" || echo "API not responding."
     echo

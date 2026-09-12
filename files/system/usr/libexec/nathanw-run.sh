@@ -17,10 +17,14 @@ set -u
 
 : "${MODEL:?MODEL is not set — run 'ujust nathanw-models-download' first.}"
 : "${EXTRA_ARGS:=}"
+# Port 8082, not the usual 8080: 8080 is commonly taken on this box by
+# signal-cli's user daemon and Steam's CEF debug forward. Override with
+# PORT= in /etc/nathanw/llama-server.conf (or the unit's Environment=).
+: "${PORT:=8082}"
 
 # shellcheck disable=SC2086 (EXTRA_ARGS is intentionally word-split here)
 exec /usr/lib/nathanw/vulkan/llama-server \
-    --host 127.0.0.1 --port 8080 \
+    --host 127.0.0.1 --port "${PORT}" \
     -m "$MODEL" \
     -ngl 99 --n-cpu-moe 0 -fa on \
     --load-mode mmap --no-host --no-repack --fit off \
