@@ -29,15 +29,13 @@ EnvironmentFile=-/etc/nathanw/llama-server.conf
 # them to the bundled Mesa RADV driver; overriding them (as ollama.service
 # does for the host ICD) would silently drop the tuned driver this build
 # ships. Only the host Vulkan loader and /dev/dri access are required.
-ExecStart=/usr/lib/nathanw/vulkan/llama-server \
-  --host 127.0.0.1 --port 8080 \
-  -m ${MODEL} \
-  -ngl 99 --n-cpu-moe 0 -fa on \
-  --load-mode mmap --no-host --no-repack --fit off \
-  --ctx-size 131072 \
-  --cache-type-k q8_0 --cache-type-v q8_0 \
-  --slot-save-path /var/lib/nathanw/slots \
-  ${EXTRA_ARGS}
+# The unit execs /usr/libexec/nathanw-run.sh instead of llama-server
+# directly: systemd does not word-split ${EXTRA_ARGS} expanded in
+# ExecStart= (it would arrive as one argv element and the server dies
+# with `error: invalid argument: -md ... --mmproj ...`), while the
+# wrapper lets the shell split it. Flags stay in the wrapper; only the
+# model paths come from the environment below.
+ExecStart=/usr/libexec/nathanw-run.sh
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=true

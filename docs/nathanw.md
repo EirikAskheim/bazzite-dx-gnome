@@ -27,7 +27,8 @@ directly to `http://127.0.0.1:8080/v1`.
 | Repo path | Deploys to | Purpose |
 | --- | --- | --- |
 | `recipes/recipe.yml` (Nathanw block) | image build | Downloads the pinned tarball, extracts to `/usr/lib/nathanw/`, symlinks `/usr/bin/llama-server-nathanw` (plus `-bench`/`-cli`), smoke-tests `--version` |
-| `files/system/usr/lib/systemd/system/nathanw-llama-server.service` | `/usr/lib/systemd/system/` | Service unit: runs as `nathanw`, gated on `/var/lib/nathanw/.models-ready`, reads `/etc/nathanw/llama-server.conf` over baked-in defaults |
+| `files/system/usr/lib/systemd/system/nathanw-llama-server.service` | `/usr/lib/systemd/system/` | Service unit: runs as `nathanw`, gated on `/var/lib/nathanw/.models-ready`, reads `/etc/nathanw/llama-server.conf` over baked-in defaults, execs the wrapper below |
+| `files/system/usr/libexec/nathanw-run.sh` | `/usr/libexec/` | Launcher: execs `llama-server` with the baked-in flags plus word-split `EXTRA_ARGS` (systemd does not word-split `${EXTRA_ARGS}` in `ExecStart=`, so the unit cannot pass it directly) |
 | `files/system/usr/lib/sysusers.d/nathanw.conf` | `/usr/lib/sysusers.d/` | `nathanw` user (`/sbin/nologin`, home `/var/lib/nathanw`) + `render`/`video` membership |
 | `files/system/usr/lib/tmpfiles.d/nathanw.conf` | `/usr/lib/tmpfiles.d/` | `/var/lib/nathanw`, `models/`, `slots/` owned by `nathanw` |
 | `files/justfiles/nathanw.just` | `ujust` | `nathanw-models-download`, `nathanw-setup`, `nathanw-verify`, `nathanw-bench`, `nathanw-logs`, `nathanw-status` |
@@ -62,7 +63,7 @@ Notes:
   shared head, not the old self-contained one) and the `mmproj-F16`
   projector. `-m` points only at shard `00001-of-00033`; keep all shards
   in one directory, do not rename.
-- The unit's baked-in flags follow upstream's Flash-Next guidance:
+- The wrapper's baked-in flags follow upstream's Flash-Next guidance:
   `-ngl 99 --n-cpu-moe 0 -fa on`, mandatory
   `--load-mode mmap --no-host --no-repack --fit off` (the ~95 GiB PLE
   table must stay memory-mapped, never allocated), `--ctx-size 131072`
@@ -96,7 +97,8 @@ and restart — only if you actually want it reachable.
 2. Bump `VERSION=` in the Nathanw block of `recipes/recipe.yml`.
    If the release renamed the portable asset, update the tarball URL in
    the same block. If it changed shard layouts or flag requirements,
-   update the defaults in `nathanw-llama-server.service` and the download
+   update the defaults in `nathanw-run.sh` (+ `nathanw-llama-server.service`
+   if the environment contract changes) and the download
    layout in `files/justfiles/nathanw.just` to match.
 3. Rebuild the image (push / PR — any non-Markdown change triggers
    `.github/workflows/build.yml`), rebase, reboot.
