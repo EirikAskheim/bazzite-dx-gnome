@@ -1,0 +1,49 @@
+[Unit]
+Description=Nathanw llama-server (Strix Halo Vulkan, portable tarball)
+Documentation=https://github.com/Nathanw1014/strix-halo-llamacpp
+After=network-online.target
+Wants=network-online.target
+# The model tree (~100 GiB) is downloaded after first boot with
+# `ujust nathanw-models-download`, which also writes the sentinel below.
+# Without it the service would only crash-loop on a fresh image, and it is
+# therefore never preset-enabled (see docs/nathanw.md).
+ConditionPathExists=/var/lib/nathanw/.models-ready
+
+[Service]
+Type=simple
+User=nathanw
+Group=nathanw
+SupplementaryGroups=render video
+WorkingDirectory=/var/lib/nathanw
+StateDirectory=nathanw
+StateDirectoryMode=0750
+Environment=HOME=/var/lib/nathanw
+# Baked-in defaults; /etc/nathanw/llama-server.conf (written by
+# `ujust nathanw-models-download`) overrides them without editing this unit,
+# so model switches survive image updates.
+Environment=MODEL=/var/lib/nathanw/models/Qwen3.8-Flash-Next/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64/Qwen3.8-Flash-Next-AD-4.27bpw-Q4_K_M-M64-00001-of-00033.gguf
+Environment=EXTRA_ARGS=
+EnvironmentFile=-/etc/nathanw/llama-server.conf
+# Do NOT set VK_ICD_FILENAMES, VK_DRIVER_FILES, or LD_LIBRARY_PATH here.
+# The _run wrapper behind /usr/lib/nathanw/vulkan/llama-server pins all of
+# them to the bundled Mesa RADV driver; overriding them (as ollama.service
+# does for the host ICD) would silently drop the tuned driver this build
+# ships. Only the host Vulkan loader and /dev/dri access are required.
+ExecStart=/usr/lib/nathanw/vulkan/llama-server \
+  --host 127.0.0.1 --port 8080 \
+  -m ${MODEL} \
+  -ngl 99 --n-cpu-moe 0 -fa on \
+  --load-mode mmap --no-host --no-repack --fit off \
+  --ctx-size 131072 \
+  --cache-type-k q8_0 --cache-type-v q8_0 \
+  --slot-save-path /var/lib/nathanw/slots \
+  ${EXTRA_ARGS}
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

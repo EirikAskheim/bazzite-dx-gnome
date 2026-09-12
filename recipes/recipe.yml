@@ -167,6 +167,39 @@ modules:
         # directory are managed at boot by systemd-sysusers and
         # systemd-tmpfiles so they are also applied on Atomic upgrades.
         echo "Ollama installed."
+  # Nathanw strix-halo-llamacpp (portable Vulkan tarball, pinned release).
+  # The ~100 GiB GGUF weights are NOT baked in; they are downloaded after
+  # first boot with `ujust nathanw-models-download` (see docs/nathanw.md).
+  - type: script
+    snippets:
+      - |
+        set -euo pipefail
+        # Single version pin for the Nathanw stack. Bump this (and the shard
+        # layout notes in files/justfiles/nathanw.just + docs/nathanw.md if
+        # the release changes them), rebuild, rebase, then re-run
+        # `ujust nathanw-models-download` so /etc/nathanw/llama-server.conf
+        # agrees with the new binary.
+        VERSION=0.7.5
+        INSTALL_DIR=/usr/lib/nathanw
+        TMPDIR="$(mktemp -d)"
+        trap 'rm -rf "${TMPDIR}"' EXIT
+        echo "Installing Nathanw strix-halo-llamacpp v${VERSION}..."
+        curl --fail --show-error --location \
+          "https://github.com/Nathanw1014/strix-halo-llamacpp/releases/download/v${VERSION}/strix-halo-llamacpp-vulkan-portable.tar.gz" \
+          -o "${TMPDIR}/nathanw.tar.gz"
+        rm -rf "${INSTALL_DIR}"
+        mkdir -p "${INSTALL_DIR}"
+        tar -xzf "${TMPDIR}/nathanw.tar.gz" -C "${INSTALL_DIR}"
+        # Stable PATH entries. The _run wrapper resolves its own directory
+        # via readlink -f, so calling it through a symlink keeps the bundled
+        # Mesa RADV driver and LD_LIBRARY_PATH wiring intact.
+        ln -sfn "${INSTALL_DIR}/vulkan/llama-server" /usr/bin/llama-server-nathanw
+        ln -sfn "${INSTALL_DIR}/vulkan/llama-bench" /usr/bin/llama-bench-nathanw
+        ln -sfn "${INSTALL_DIR}/vulkan/llama-cli" /usr/bin/llama-cli-nathanw
+        # Fail the image build on a bad download instead of shipping a
+        # broken /usr/lib/nathanw.
+        "${INSTALL_DIR}/vulkan/llama-server" --version
+        echo "Nathanw strix-halo-llamacpp v${VERSION} installed."
   # Mudfish Cloud VPN
   - type: dnf
     install:
