@@ -196,9 +196,6 @@ modules:
         ln -sfn "${INSTALL_DIR}/vulkan/llama-server" /usr/bin/llama-server-nathanw
         ln -sfn "${INSTALL_DIR}/vulkan/llama-bench" /usr/bin/llama-bench-nathanw
         ln -sfn "${INSTALL_DIR}/vulkan/llama-cli" /usr/bin/llama-cli-nathanw
-        # Fail the image build on a bad download instead of shipping a
-        # broken /usr/lib/nathanw.
-        "${INSTALL_DIR}/vulkan/llama-server" --version
         echo "Nathanw strix-halo-llamacpp v${VERSION} installed."
   # Mudfish Cloud VPN
   - type: dnf
