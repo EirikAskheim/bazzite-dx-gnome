@@ -46,7 +46,8 @@ restic-setup:
     sudo chmod 0600 /etc/restic/env /etc/restic/password
 
     # Canonical exclude list (also shipped in the image at /etc/restic/excludes).
-    if [[ ! -f /etc/restic/excludes ]]; then
+    # /etc/restic is root-only (0700), so existence must be checked via sudo.
+    if ! sudo test -f /etc/restic/excludes; then
         printf '%s\n' \
             '/var/lib/flatpak' \
             '/var/lib/containers/storage' \
@@ -63,8 +64,9 @@ restic-setup:
     fi
 
     # Dedicated SSH key for root-run restic access to the backup host.
+    # /root/.ssh is root-only (0700), so existence must be checked via sudo.
     sudo install -d -m 0700 /root/.ssh
-    if [[ ! -f /root/.ssh/id_ed25519 ]]; then
+    if ! sudo test -f /root/.ssh/id_ed25519; then
         sudo ssh-keygen -t ed25519 -N '' -f /root/.ssh/id_ed25519 -C "restic-backup@$(hostname)"
     fi
     BACKUP_KEY="$(sudo cat /root/.ssh/id_ed25519.pub)"
@@ -101,12 +103,13 @@ restic-backup:
         echo "Run 'ujust restic-backup' as your desktop user, not as root." >&2
         exit 1
     fi
-    if [[ ! -f /etc/restic/env ]]; then
+    # /etc/restic is root-only (0700), so existence must be checked via sudo.
+    if ! sudo test -f /etc/restic/env; then
         echo "No restic configuration found. Run 'ujust restic-setup' first." >&2
         exit 1
     fi
 
-    echo "Starting restic backup of /etc, /var/lib and /var/home/${SUDO_USER}..."
+    echo "Starting restic backup of /etc, /var/lib and /var/home/${USER}..."
     sudo bash -c 'set -a; . /etc/restic/env; set +a; exec restic backup \
         /etc /var/lib "/var/home/${SUDO_USER}" \
         --exclude-file=/etc/restic/excludes --exclude-if-present=.nobackup'
@@ -117,6 +120,10 @@ restic-snapshots:
     #!/usr/bin/env bash
     set -euo pipefail
 
+    if ! sudo test -f /etc/restic/env; then
+        echo "No restic configuration found. Run 'ujust restic-setup' first." >&2
+        exit 1
+    fi
     sudo bash -c 'set -a; . /etc/restic/env; set +a; exec restic snapshots'
 
 # Verify repository integrity (read-only check of structure and data).
@@ -124,5 +131,9 @@ restic-check:
     #!/usr/bin/env bash
     set -euo pipefail
 
+    if ! sudo test -f /etc/restic/env; then
+        echo "No restic configuration found. Run 'ujust restic-setup' first." >&2
+        exit 1
+    fi
     echo "Checking repository integrity (this can take a while)..."
     sudo bash -c 'set -a; . /etc/restic/env; set +a; exec restic check'
