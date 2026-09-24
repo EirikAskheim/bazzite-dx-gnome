@@ -39,15 +39,15 @@ modules:
         - cmake
         - pkgconf-pkg-config
         - git
-        # C++/Vulkan build toolchain (SDL3, glm, Vulkan, FFmpeg)
-        - SDL3-devel
+        # C++/Vulkan build toolchain (SDL3-devel and ffmpeg-devel dropped:
+        # SDL3-devel needs mesa-libGLU-devel which Bazzite excludes;
+        # ffmpeg-devel is not in Fedora repos - revisit if actually needed)
         - glm-devel
         - zlib-devel
         - libX11-devel
         - vulkan-devel
         - vulkan-tools
         - glslc
-        - ffmpeg-devel
         # Optional: Warden execution emulation
         - unicorn-devel
         - chromium
