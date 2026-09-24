@@ -268,3 +268,30 @@ modules:
     install:
       packages:
         - waterfox
+  # StormLib (provides libstorm.so.9, the MPQ archive library). It is not
+  # packaged in Fedora, so build the shared library from source. Bundled
+  # dependencies keep the .so self-contained and avoid extra -devel
+  # packages in the image.
+  - type: script
+    snippets:
+      - |
+        set -euo pipefail
+        # Single version pin for StormLib. The project major version sets
+        # the .so soname (9.x -> libstorm.so.9); bump the tag to update.
+        VERSION=9.40
+        TMPDIR="$(mktemp -d)"
+        trap 'rm -rf "${TMPDIR}"' EXIT
+        echo "Building StormLib v${VERSION}..."
+        git clone --depth 1 --branch "v${VERSION}" \
+          https://github.com/ladislav-zezula/StormLib.git "${TMPDIR}/src"
+        cmake -S "${TMPDIR}/src" -B "${TMPDIR}/build" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=ON \
+          -DSTORM_USE_BUNDLED_LIBRARIES=ON \
+          -DSTORM_BUILD_TESTS=OFF \
+          -DCMAKE_INSTALL_PREFIX=/usr
+        cmake --build "${TMPDIR}/build" -j"$(nproc)"
+        cmake --install "${TMPDIR}/build"
+        ldconfig
+        test -f /usr/lib64/libstorm.so.9
+        echo "StormLib v${VERSION} installed as /usr/lib64/libstorm.so.9."
