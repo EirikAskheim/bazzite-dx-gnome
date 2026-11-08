@@ -27,7 +27,6 @@ modules:
         - patch
         - incus
         - incus-client
-        - incus-selinux
         - incus-tools
         - python3-devel
         - libffi-devel
