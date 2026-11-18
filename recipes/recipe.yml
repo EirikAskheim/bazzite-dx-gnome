@@ -67,9 +67,14 @@ modules:
     remove:
       packages:
         - rom-properties-localsearch3
-  # opencode and zed (from the Terra repo, already present in the base image)
+  # opencode and zed come from the Terra repo (repos.fyralabs.com).
+  # Bazzite does NOT ship these package names in Fedora repos, so the
+  # repo definition must be added explicitly via `repos.files`.
   - type: signing
   - type: dnf
+    repos:
+      files:
+        - terra.repo
     install:
       packages:
         - opencode
