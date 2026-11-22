@@ -162,11 +162,18 @@ modules:
         rm -rf "${INSTALL_DIR}"
         mkdir -p "${INSTALL_DIR}"
         tar -xJf "${TMPDIR}/node-v${NODE_VERSION}-linux-x64.tar.xz" -C "${INSTALL_DIR}" --strip-components=1
+        # The bundled npm's shebang is `#!/usr/bin/env node`, so without
+        # this it runs (and builds native deps like isolated-vm) under the
+        # image's system Node 22 instead of the bundled Node 24. Point
+        # PATH at the bundled runtime first so npm and everything it
+        # spawns use Node 24.
+        export PATH="${INSTALL_DIR}/bin:${PATH}"
         # Keep npm's cache out of the image layer; the service user gets
-        # its own HOME-scoped cache at runtime.
+        # its own HOME-scoped cache at runtime. PATH already points at the
+        # bundled Node 24 (see above), so npm runs and builds under it.
         export npm_config_cache="${TMPDIR}/npm-cache"
         echo "Installing n8n v${N8N_VERSION}..."
-        "${INSTALL_DIR}/bin/npm" install --global --prefix "${INSTALL_DIR}/app" "n8n@${N8N_VERSION}"
+        npm install --global --prefix "${INSTALL_DIR}/app" "n8n@${N8N_VERSION}"
         # Stable PATH entries for the n8n service account and interactive use.
         cat > /usr/bin/n8n <<EOF
         #!/usr/bin/env bash
@@ -174,7 +181,7 @@ modules:
         exec "${INSTALL_DIR}/bin/node" "${INSTALL_DIR}/app/lib/node_modules/n8n/bin/n8n" "\$@"
         EOF
         chmod 0755 /usr/bin/n8n
-        "${INSTALL_DIR}/bin/node" --version
+        node --version
         /usr/bin/n8n --version
         echo "n8n v${N8N_VERSION} installed with Node.js v${NODE_VERSION}."
   # Nathanw strix-halo-llamacpp (portable Vulkan tarball, pinned release).
