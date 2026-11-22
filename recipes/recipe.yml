@@ -67,16 +67,23 @@ modules:
     remove:
       packages:
         - rom-properties-localsearch3
-  # opencode and zed come from the Terra repo, which is already present
-  # in the base image. Do NOT re-add it via `repos.files`: the base
-  # ships /usr/share/dnf5/repos.d/terra.repo and dnf5 errors out on the
-  # duplicate repo id (see the `28cc1bd` build failure).
+  # zed comes from the Terra repo. The base image ships Terra but disables
+  # it (enabled=0 in /etc/dnf/repos.override.d/99-config_manager.repo), so
+  # enable it for the install and disable it again right after to keep the
+  # base's repo policy. Do NOT re-add terra.repo via `repos.files`: the id
+  # collides with the base's repo file (see the `28cc1bd` build failure).
   - type: signing
   - type: dnf
+    repos:
+      enable:
+        - terra
     install:
       packages:
-        - opencode
         - zed
+  - type: dnf
+    repos:
+      disable:
+        - terra
   # Ollama (installed using the Linux installer from https://ollama.com/install.sh)
   - type: script
     snippets:
