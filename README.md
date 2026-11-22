@@ -101,6 +101,40 @@ turn off Auto Connect in the web UI:
 sudo rm /etc/mudfish/credentials
 ```
 
+## n8n workflow automation
+
+n8n is baked into the image (pinned npm release, currently 2.48.7) with its
+own Node.js 24 runtime under `/usr/lib/n8n`, separate from the image's
+system Node. The `n8n.service` runs as the unprivileged `n8n` system user,
+is enabled by default, and stores user data (SQLite DB, workflows, binary
+data) in `/var/lib/n8n/.n8n`, which survives image updates. Defaults are baked
+into the unit (port 5678 on localhost, Oslo timezone, task runners
+isolated); only host-specific overrides live in `/etc/n8n/n8n.conf`.
+
+After rebasing, run the one-time setup:
+
+```bash
+ujust n8n-setup
+```
+
+This generates the credential encryption key in `/etc/n8n/n8n.conf`
+(root-only, never part of the image), applies any `N8N_*` overrides passed
+in the environment (port, host, basic auth), and starts the service. Then
+open [http://127.0.0.1:5678](http://127.0.0.1:5678) and finish the owner
+account setup in the editor UI. Check state any time with:
+
+```bash
+ujust n8n-status   # unit state + editor health check
+ujust n8n-logs     # follow the service log
+```
+
+Back up the encryption key in your password manager: restic backs up
+`/var/lib/n8n/.n8n` (workflows included) but deliberately excludes
+`/etc/n8n`, so without the key the backed-up credentials cannot be
+decrypted. To try a newer n8n outside the image build, run
+`ujust n8n-update <version>`; pin the version as `N8N_VERSION` in
+`recipes/recipe.yml` to keep it across builds.
+
 ## Backups (restic → bokhylla)
 
 The image includes restic and a `ujust restic-*` recipe set for encrypted,
@@ -143,6 +177,9 @@ Caches and regenerable data are excluded (see `/etc/restic/excludes`):
 `~/.cache`, `Trash`, `~/.npm`, `~/.rustup`, the Cargo registry cache, Steam
 shader caches, system Flatpaks, container image storage, and the Ollama /
 Nathanw model directories (`/var/lib/ollama/models`, `/var/lib/nathanw/models`).
+The n8n user files ARE backed up (so workflows survive), but its encryption
+key is excluded (`/etc/n8n`; back it up separately as described in the n8n
+section — without it stored credentials cannot be decrypted).
 The exclude list is refreshed from the recipe on every `restic-setup` and
 `restic-backup` run, so image updates to it apply to existing machines.
 Note that snapshots taken before a path was excluded still hold its data

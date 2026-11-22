@@ -122,6 +122,56 @@ modules:
         # directory are managed at boot by systemd-sysusers and
         # systemd-tmpfiles so they are also applied on Atomic upgrades.
         echo "Ollama installed."
+  # n8n workflow automation (self-hosted, pinned npm release) with a
+  # dedicated Node.js 24 runtime. n8n requires Node >= 24 while the image's
+  # system Node (`nodejs22`, needed by other packages) is too old, so
+  # install upstream's official linux-x64 tarball next to the npm package
+  # under /usr/lib/n8n and never touch the system Node. The install is
+  # stateless: user data (SQLite DB, binary data, config, encryption key
+  # state) lives in /var/lib/n8n (`n8n` system user, preset-enabled
+  # n8n.service) and the encryption key is generated on first start by
+  # the ujust recipe below, so workflows/credentials survive image updates
+  # and rebasing is safe without re-setup.
+  - type: script
+    snippets:
+      - |
+        set -euo pipefail
+        # Single version pins for the n8n stack. Bump both together:
+        # the npm package declares engines.node >= 24, so the runtime must
+        # stay on Node 24 LTS. n8n upstream publishes no checksums for npm;
+        # releases are verified implicitly via the npm registry's signed
+        # metadata. The Node tarball IS checksum-verified via SHASUMS256.txt.
+        NODE_VERSION=24.22.3
+        N8N_VERSION=2.48.7
+        INSTALL_DIR=/usr/lib/n8n
+        TMPDIR="$(mktemp -d)"
+        trap 'rm -rf "${TMPDIR}"' EXIT
+        echo "Installing Node.js v${NODE_VERSION} runtime for n8n..."
+        curl --fail --show-error --location \
+          "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" \
+          -o "${TMPDIR}/node.tar.xz"
+        curl --fail --show-error --location \
+          "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" \
+          -o "${TMPDIR}/SHASUMS256.txt"
+        (cd "${TMPDIR}" && grep "node-v${NODE_VERSION}-linux-x64.tar.xz" SHASUMS256.txt | sha256sum -c -)
+        rm -rf "${INSTALL_DIR}"
+        mkdir -p "${INSTALL_DIR}"
+        tar -xJf "${TMPDIR}/node.tar.xz" -C "${INSTALL_DIR}" --strip-components=1
+        # Keep npm's cache out of the image layer; the service user gets
+        # its own HOME-scoped cache at runtime.
+        export npm_config_cache="${TMPDIR}/npm-cache"
+        echo "Installing n8n v${N8N_VERSION}..."
+        "${INSTALL_DIR}/bin/npm" install --global --prefix "${INSTALL_DIR}/app" "n8n@${N8N_VERSION}"
+        # Stable PATH entries for the n8n service account and interactive use.
+        cat > /usr/bin/n8n <<EOF
+        #!/usr/bin/env bash
+        export PATH="${INSTALL_DIR}/bin:${INSTALL_DIR}/app/bin:\$PATH"
+        exec "${INSTALL_DIR}/bin/node" "${INSTALL_DIR}/app/lib/node_modules/n8n/bin/n8n" "\$@"
+        EOF
+        chmod 0755 /usr/bin/n8n
+        "${INSTALL_DIR}/bin/node" --version
+        /usr/bin/n8n --version
+        echo "n8n v${N8N_VERSION} installed with Node.js v${NODE_VERSION}."
   # Nathanw strix-halo-llamacpp (portable Vulkan tarball, pinned release).
   # The ~100 GiB GGUF weights are NOT baked in; they are downloaded after
   # first boot with `ujust nathanw-models-download` (see docs/nathanw.md).

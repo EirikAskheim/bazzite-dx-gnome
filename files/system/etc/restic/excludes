@@ -3,6 +3,11 @@
 /var/lib/containers/storage
 /var/lib/ollama/models
 /var/lib/nathanw/models
+# n8n user files (/var/lib/n8n/.n8n) ARE backed up so workflows and
+# encrypted credentials survive. The encryption key itself stays out:
+# /etc/n8n/n8n.conf holds N8N_ENCRYPTION_KEY (root-only) and without it the
+# backed-up credentials cannot be decrypted.
+/etc/n8n
 /var/home/*/.cache
 /var/home/*/.local/share/Trash
 /var/home/*/.npm

@@ -1,0 +1,42 @@
+[Unit]
+Description=n8n workflow automation
+Documentation=https://docs.n8n.io/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=n8n
+Group=n8n
+Environment=HOME=/var/lib/n8n
+Environment=N8N_USER_FOLDER=/var/lib/n8n/.n8n
+Environment=N8N_PORT=5678
+Environment=N8N_PROTOCOL=http
+Environment=N8N_HOST=127.0.0.1
+Environment=N8N_LOG_LEVEL=info
+Environment=N8N_RUNNERS_ENABLED=true
+Environment=GENERIC_TIMEZONE=Europe/Oslo
+Environment=TZ=Europe/Oslo
+EnvironmentFile=-/etc/n8n/n8n.conf
+WorkingDirectory=/var/lib/n8n
+StateDirectory=n8n
+StateDirectoryMode=0750
+# The service account cannot modify /usr; updates are delivered by
+# rebuilding the image. n8n generates its encryption key on first start
+# (see `ujust n8n-setup`); keep /var/lib/n8n/.n8n across updates so
+# workflows and credentials survive.
+#
+# Node runs from the bundled runtime under /usr/lib/n8n, which resists
+# the usual /usr/bin/node SELinux labeling. n8n needs outbound HTTPS for
+# nodes calling external APIs, so run in the standard unconfined domain.
+SELinuxContext=system_u:system_r:unconfined_service_t:s0
+ExecStart=/usr/bin/n8n start
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target
